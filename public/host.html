@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Host Panel - AI или Човек?</title>
+  <link rel="stylesheet" href="/style.css" />
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body class="host-page">
+  <div class="host-layout">
+    <aside class="host-sidebar">
+      <div class="host-brand">🎮 Host Panel</div>
+      <div class="host-subtitle">AI или Човек? — Контролен панел</div>
+
+      <div class="host-pin-box">Game PIN: <span id="hostPin">...</span></div>
+      <div class="host-state-box">Статус: <span id="hostState">lobby</span></div>
+      <div class="host-state-box">Играчa: <span id="hostPlayersCount">0</span></div>
+      <div class="host-state-box">Въпрос: <span id="hostQuestionInfo">0/0</span></div>
+      <div class="host-state-box">Отговорили: <span id="hostAnswered">0</span></div>
+      <div class="host-state-box">Неотговорили: <span id="hostUnanswered">0</span></div>
+
+      <div class="host-buttons">
+        <button id="startBtn" class="primary-btn">🚀 Старт на играта</button>
+        <button id="nextBtn" class="secondary-btn">⏭ Next / Skip</button>
+        <button id="resetBtn" class="danger-btn">🔁 Reset</button>
+      </div>
+
+      <div class="timer-panel">
+        <div class="timer-label">Таймер</div>
+        <div class="timer-big" id="hostTimer">15</div>
+      </div>
+    </aside>
+
+    <main class="host-main">
+      <section class="host-question-preview">
+        <h2>Текущ въпрос</h2>
+
+        <div class="host-images">
+          <div class="image-card">
+            <div class="image-title">Ляво изображение</div>
+            <img id="hostLeftImage" alt="Ляво изображение" />
+          </div>
+
+          <div class="image-card">
+            <div class="image-title">Дясно изображение</div>
+            <img id="hostRightImage" alt="Дясно изображение" />
+          </div>
+        </div>
+
+        <div class="correct-box">
+          Правилен отговор: <span id="correctAnswerText">—</span>
+        </div>
+      </section>
+
+      <section class="host-bottom-grid">
+        <div class="panel-card">
+          <h3>Играчите</h3>
+          <div id="playersList"></div>
+        </div>
+
+        <div class="panel-card">
+          <h3>Leaderboard</h3>
+          <div id="leaderboardHost"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="/client.js"></script>
+</body>
+</html>

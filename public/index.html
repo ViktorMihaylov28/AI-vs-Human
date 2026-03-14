@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI или Човек?</title>
+  <link rel="stylesheet" href="/style.css" />
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body class="player-page">
+  <div class="screen join-screen" id="joinScreen">
+    <div class="join-card">
+      <div class="brand">AI или Човек?</div>
+      <div class="join-subtitle">Multiplayer quiz игра за разпознаване на код</div>
+
+      <input id="pinInput" class="input" placeholder="Game PIN" maxlength="6" />
+      <input id="nameInput" class="input" placeholder="Nickname" maxlength="30" />
+
+      <button id="joinBtn" class="primary-btn">Влез в играта</button>
+      <div id="joinError" class="error-text"></div>
+    </div>
+  </div>
+
+  <div class="screen game-screen hidden" id="gameScreen">
+    <header class="topbar">
+      <div class="top-left">
+        <div class="player-name" id="playerName">Играч</div>
+        <div class="player-score">Точки: <span id="playerScore">0</span></div>
+        <div class="player-rank">Място: <span id="playerRank">—</span></div>
+      </div>
+
+      <div class="top-center">
+        <div class="pin-small">PIN: <span id="pinSmall">...</span></div>
+        <div class="question-count">
+          Въпрос <span id="questionNumber">0</span>/<span id="questionTotal">0</span>
+        </div>
+      </div>
+
+      <div class="top-right">
+        <div class="timer-circle">
+          <span id="timerValue">15</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="game-main">
+      <section class="images-wrap">
+        <div class="image-card">
+          <div class="image-title">Ляво изображение</div>
+          <img id="leftImage" alt="Ляво изображение" />
+        </div>
+        <div class="image-card">
+          <div class="image-title">Дясно изображение</div>
+          <img id="rightImage" alt="Дясно изображение" />
+        </div>
+      </section>
+
+      <section class="answers-grid">
+        <button class="answer-btn red" data-choice="0">Лявата е от човек, дясната е ИИ</button>
+        <button class="answer-btn blue" data-choice="1">Дясната е от човек, лявата е ИИ</button>
+        <button class="answer-btn yellow" data-choice="2">И двете са от човек</button>
+        <button class="answer-btn green" data-choice="3">И двете са от ИИ</button>
+      </section>
+
+      <section class="status-box" id="statusBox">⌛ Чакай старт...</section>
+    </main>
+
+    <aside class="mobile-leaderboard">
+      <h3>Класиране</h3>
+      <div id="leaderboardMini"></div>
+    </aside>
+  </div>
+
+  <div class="screen podium-screen hidden" id="podiumScreen">
+    <div class="podium-card">
+      <h1>🏆 Крайно класиране</h1>
+      <p class="final-score">Твоите точки: <span id="finalMyScore">0</span></p>
+      <div class="podium-grid" id="podiumGrid"></div>
+
+      <div class="full-ranking">
+        <h3>Пълно класиране</h3>
+        <div id="finalLeaderboard"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/client.js"></script>
+</body>
+</html>
