@@ -2,8 +2,10 @@
 <html lang="bg">
 <head>
   <meta charset="UTF-8" />
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AI или Човек?</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="stylesheet" href="/style.css" />
   <script src="/socket.io/socket.io.js"></script>
 </head>
@@ -13,7 +15,6 @@
       <div class="brand">AI или Човек?</div>
       <div class="join-subtitle">Multiplayer quiz игра за разпознаване на код</div>
 
-      <input id="pinInput" class="input" placeholder="Game PIN" maxlength="6" />
       <input id="nameInput" class="input" placeholder="Nickname" maxlength="30" />
 
       <button id="joinBtn" class="primary-btn">Влез в играта</button>
@@ -26,32 +27,33 @@
       <div class="top-left">
         <div class="player-name" id="playerName">Играч</div>
         <div class="player-score">Точки: <span id="playerScore">0</span></div>
-        <div class="player-rank">Място: <span id="playerRank">—</span></div>
-      </div>
-
-      <div class="top-center">
-        <div class="pin-small">PIN: <span id="pinSmall">...</span></div>
-        <div class="question-count">
-          Въпрос <span id="questionNumber">0</span>/<span id="questionTotal">0</span>
-        </div>
-      </div>
-
-      <div class="top-right">
-        <div class="timer-circle">
-          <span id="timerValue">15</span>
+        <div class="player-rank">Място: <span id="playerRank">-</span></div>
+        <div class="top-center">
+          <div class="question-count">
+            Въпрос <span id="questionNumber">0</span>/<span id="questionTotal">0</span>
+          </div>
         </div>
       </div>
     </header>
 
     <main class="game-main">
       <section class="images-wrap">
-        <div class="image-card">
-          <div class="image-title">Ляво изображение</div>
-          <img id="leftImage" alt="Ляво изображение" />
+        <div class="image-card large-code-card">
+          <div class="image-title" id="leftCodeTitle">Ляв код</div>
+          <div id="leftCode" class="code-block"></div>
         </div>
-        <div class="image-card">
-          <div class="image-title">Дясно изображение</div>
-          <img id="rightImage" alt="Дясно изображение" />
+
+        <div class="player-timer-wrap">
+          <div class="top-right">
+            <div class="timer-circle">
+              <span id="timerValue">15</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="image-card large-code-card">
+          <div class="image-title" id="rightCodeTitle">Десен код</div>
+          <div id="rightCode" class="code-block"></div>
         </div>
       </section>
 
@@ -62,7 +64,7 @@
         <button class="answer-btn green" data-choice="3">И двете са от ИИ</button>
       </section>
 
-      <section class="status-box" id="statusBox">⌛ Чакай старт...</section>
+      <section class="status-box" id="statusBox">Изчакай старт...</section>
     </main>
 
     <aside class="mobile-leaderboard">
@@ -73,7 +75,7 @@
 
   <div class="screen podium-screen hidden" id="podiumScreen">
     <div class="podium-card">
-      <h1>🏆 Крайно класиране</h1>
+      <h1>Крайно класиране</h1>
       <p class="final-score">Твоите точки: <span id="finalMyScore">0</span></p>
       <div class="podium-grid" id="podiumGrid"></div>
 

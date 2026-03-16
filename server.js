@@ -8,15 +8,11 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 const QUESTION_TIME_SECONDS = 15;
-let GAME_PIN = generatePin();
+const QUESTIONS_PER_GAME = 20;
 
 app.use(express.static(path.join(__dirname, "public")));
-
-function generatePin() {
-  return String(Math.floor(100000 + Math.random() * 900000));
-}
 
 function shuffle(array) {
   const arr = [...array];
@@ -27,6 +23,25 @@ function shuffle(array) {
   return arr;
 }
 
+function pickRandom(array) {
+  return array[Math.floor(Math.random() * array.length)];
+}
+
+function pickDifferentPair(array) {
+  if (array.length < 2) {
+    throw new Error("Need at least 2 items to pick a different pair.");
+  }
+
+  const firstIndex = Math.floor(Math.random() * array.length);
+  let secondIndex = Math.floor(Math.random() * array.length);
+
+  while (secondIndex === firstIndex) {
+    secondIndex = Math.floor(Math.random() * array.length);
+  }
+
+  return [array[firstIndex], array[secondIndex]];
+}
+
 function esc(str) {
   return String(str)
     .replaceAll("&", "&amp;")
@@ -35,9 +50,17 @@ function esc(str) {
     .replaceAll('"', "&quot;");
 }
 
-function codeText(x, y, text, color, size = 22, weight = 500) {
+function codeText(x, y, text, color, size = 26, weight = 600) {
   return `
-    <text x="${x}" y="${y}" fill="${color}" font-family="Consolas, 'Courier New', monospace" font-size="${size}" font-weight="${weight}">
+    <text
+      x="${x}"
+      y="${y}"
+      fill="${color}"
+      font-family="Consolas, 'Courier New', monospace"
+      font-size="${size}"
+      font-weight="${weight}"
+      xml:space="preserve"
+    >
       ${esc(text)}
     </text>
   `;
@@ -45,7 +68,14 @@ function codeText(x, y, text, color, size = 22, weight = 500) {
 
 function lineNumber(x, y, n) {
   return `
-    <text x="${x}" y="${y}" fill="#6b7280" font-family="Consolas, 'Courier New', monospace" font-size="18" text-anchor="end">
+    <text
+      x="${x}"
+      y="${y}"
+      fill="#6b7280"
+      font-family="Consolas, 'Courier New', monospace"
+      font-size="20"
+      text-anchor="end"
+    >
       ${n}
     </text>
   `;
@@ -53,141 +83,39 @@ function lineNumber(x, y, n) {
 
 function renderCodeEditorSvg({
   title,
-  badge,
-  badgeColor,
   bg,
   panel,
   topbar,
   border,
   text,
-  muted,
-  keyword,
-  string,
-  func,
-  number,
-  comment,
   accent,
-  lines,
-  footer
+  lines
 }) {
-  let y = 150;
+  let y = 110;
   let rendered = "";
 
-  lines.forEach((line, idx) => {
-    rendered += lineNumber(62, y, idx + 1);
-
-    let color = text;
-    const trimmed = line.trim();
-
-    if (
-      trimmed.startsWith("//") ||
-      trimmed.startsWith("#") ||
-      trimmed.startsWith("SELECT") ||
-      trimmed.startsWith("FROM") ||
-      trimmed.startsWith("WHERE") ||
-      trimmed.startsWith("ORDER BY")
-    ) {
-      color = comment;
-    } else if (
-      line.includes("function ") ||
-      line.includes("const ") ||
-      line.includes("let ") ||
-      line.includes("return ") ||
-      line.includes("public ") ||
-      line.includes("private ") ||
-      line.includes("using ") ||
-      line.includes("class ") ||
-      line.includes("def ") ||
-      line.includes("export ")
-    ) {
-      color = keyword;
-    } else if (
-      line.includes('"') ||
-      line.includes("'") ||
-      line.includes("`")
-    ) {
-      color = string;
-    } else if (
-      line.includes("35") ||
-      line.includes("0.7") ||
-      line.includes("1000") ||
-      line.includes("50")
-    ) {
-      color = number;
-    } else if (
-      line.includes("BuildTicket") ||
-      line.includes("calculatePrice") ||
-      line.includes("renderSeatMap") ||
-      line.includes("generateBookingUI")
-    ) {
-      color = func;
-    }
-
-    rendered += codeText(84, y, line, color);
-    y += 34;
-  });
+  for (let i = 0; i < lines.length; i++) {
+    rendered += lineNumber(72, y, i + 1);
+    rendered += codeText(100, y, lines[i], text);
+    y += 42;
+  }
 
   return `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
-  <rect width="1200" height="800" fill="${bg}"/>
-  <rect x="24" y="24" width="1152" height="752" rx="24" fill="${panel}" stroke="${border}" stroke-width="2"/>
-  <rect x="24" y="24" width="1152" height="62" rx="24" fill="${topbar}"/>
-  <circle cx="56" cy="55" r="8" fill="#ef4444"/>
-  <circle cx="82" cy="55" r="8" fill="#f59e0b"/>
-  <circle cx="108" cy="55" r="8" fill="#22c55e"/>
-
-  <rect x="150" y="38" width="260" height="34" rx="10" fill="rgba(255,255,255,0.06)"/>
-  <text x="170" y="61" fill="${text}" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700">${esc(title)}</text>
-
-  <rect x="940" y="36" width="180" height="34" rx="12" fill="rgba(255,255,255,0.06)" stroke="${accent}"/>
-  <text x="965" y="59" fill="${badgeColor}" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700">${esc(badge)}</text>
-
-  <rect x="24" y="86" width="54" height="690" fill="rgba(255,255,255,0.03)"/>
-  <rect x="78" y="86" width="1098" height="690" fill="${panel}"/>
-
-  <g opacity="0.10">
-    <line x1="78" y1="120" x2="1176" y2="120" stroke="${accent}"/>
-    <line x1="78" y1="220" x2="1176" y2="220" stroke="${accent}"/>
-    <line x1="78" y1="320" x2="1176" y2="320" stroke="${accent}"/>
-    <line x1="78" y1="420" x2="1176" y2="420" stroke="${accent}"/>
-    <line x1="78" y1="520" x2="1176" y2="520" stroke="${accent}"/>
-    <line x1="78" y1="620" x2="1176" y2="620" stroke="${accent}"/>
-  </g>
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="900" viewBox="0 0 1400 900">
+  <rect width="1400" height="900" fill="${panel}"/>
 
   ${rendered}
-
-  
 </svg>`;
 }
 
+/**
+ * Всички кодове са в един цвят.
+ * Не ползваме различно оцветяване на keywords / strings / numbers.
+ */
+
 const HUMAN_VARIANTS = [
   {
-    title: "ticket_price.py",
-    footer: "",
-    lines: [
-      "price = 35",
-      "",
-      "student = True",
-      "",
-      "if student:",
-      "    price = price * 0.7",
-      "",
-      "print(price)"
-    ]
-  },
-  {
-    title: "email_check.py",
-    footer: "",
-    lines: [
-      "def check_email(email):",
-      "    if '@' in email and '.' in email:",
-      "        return True",
-      "    return False"
-    ]
-  },
-  {
     title: "sum.py",
-    footer: "",
     lines: [
       "a = 5",
       "b = 10",
@@ -196,8 +124,18 @@ const HUMAN_VARIANTS = [
     ]
   },
   {
+    title: "discount.py",
+    lines: [
+      "price = 50",
+      "",
+      "if price > 40:",
+      "    print('expensive')",
+      "else:",
+      "    print('ok')"
+    ]
+  },
+  {
     title: "seat_check.js",
-    footer: "",
     lines: [
       "taken = [3, 7, 10]",
       "",
@@ -210,30 +148,23 @@ const HUMAN_VARIANTS = [
     ]
   },
   {
-    title: "discount.py",
-    footer: "",
+    title: "email_check.py",
     lines: [
-      "price = 50",
-      "",
-      "if price > 40:",
-      "    print('expensive')",
-      "else:",
-      "    print('ok')"
+      "def check_email(email):",
+      "    if '@' in email and '.' in email:",
+      "        return True",
+      "    return False"
     ]
   },
   {
-    title: "name_check.py",
-    footer: "",
+    title: "hello.py",
     lines: [
-      "name = 'Ivan'",
-      "",
-      "if len(name) > 2:",
-      "    print('valid')"
+      "name = 'Maria'",
+      "print('Hello ' + name)"
     ]
   },
   {
-    title: "trip_print.py",
-    footer: "",
+    title: "trip.py",
     lines: [
       "from_city = 'Varna'",
       "to_city = 'Sofia'",
@@ -243,7 +174,6 @@ const HUMAN_VARIANTS = [
   },
   {
     title: "even.py",
-    footer: "",
     lines: [
       "n = 8",
       "",
@@ -254,188 +184,514 @@ const HUMAN_VARIANTS = [
     ]
   },
   {
-    title: "seat_message.js",
-    footer: "",
+    title: "grade.py",
     lines: [
-      "seat = 12",
+      "score = 5.50",
       "",
-      "if(seat == 12){",
-      "  console.log('selected')",
+      "if score >= 5.50:",
+      "    print('excellent')",
+      "else:",
+      "    print('ok')"
+    ]
+  },
+  {
+    title: "cart.js",
+    lines: [
+      "items = [12, 5, 3]",
+      "total = 0",
+      "",
+      "for (let i = 0; i < items.length; i++) {",
+      "  total += items[i]",
+      "}",
+      "",
+      "console.log(total)"
+    ]
+  },
+  {
+    title: "name_check.py",
+    lines: [
+      "name = 'Ivan'",
+      "",
+      "if len(name) > 2:",
+      "    print('valid')"
+    ]
+  },
+  {
+    title: "avg.py",
+    lines: [
+      "nums = [4, 6, 8]",
+      "result = sum(nums) / len(nums)",
+      "",
+      "print(result)"
+    ]
+  },
+  {
+    title: "ticket.py",
+    lines: [
+      "price = 35",
+      "student = True",
+      "",
+      "if student:",
+      "    price = price * 0.7",
+      "",
+      "print(price)"
+    ]
+  },
+  {
+    title: "contains.js",
+    lines: [
+      "text = 'varna'",
+      "",
+      "if (text.includes('ar')) {",
+      "  console.log('yes')",
       "}"
     ]
   },
   {
-    title: "hello.py",
-    footer: "",
+    title: "city.py",
     lines: [
-      "name = 'Maria'",
-      "print('Hello ' + name)"
+      "city = 'Plovdiv'",
+      "",
+      "print(city.upper())"
+    ]
+  },
+  {
+    title: "multiply.py",
+    lines: [
+      "x = 7",
+      "y = 4",
+      "",
+      "print(x * y)"
+    ]
+  },
+  {
+    title: "filter.js",
+    lines: [
+      "nums = [1, 2, 3, 4, 5]",
+      "evens = nums.filter(n => n % 2 === 0)",
+      "",
+      "console.log(evens)"
+    ]
+  },
+  {
+    title: "seats.py",
+    lines: [
+      "free = [2, 4, 6, 8]",
+      "",
+      "print(6 in free)"
+    ]
+  },
+  {
+    title: "course.py",
+    lines: [
+      "hour = '14:15'",
+      "route = 'Varna-Sofia'",
+      "",
+      "print(route + ' ' + hour)"
+    ]
+  },
+  {
+    title: "total.js",
+    lines: [
+      "prices = [15, 20, 18]",
+      "sum = 0",
+      "",
+      "for (let p of prices) {",
+      "  sum += p",
+      "}",
+      "",
+      "console.log(sum)"
+    ]
+  },
+  {
+    title: "seat_label.py",
+    lines: [
+      "row = 4",
+      "seat = 'B'",
+      "",
+      "print(str(row) + seat)"
+    ]
+  },
+  {
+    title: "user.js",
+    lines: [
+      "user = { name: 'Mila', age: 17 }",
+      "",
+      "console.log(user.name)"
+    ]
+  },
+  {
+    title: "price_ok.py",
+    lines: [
+      "price = 24",
+      "",
+      "if price < 30:",
+      "    print('cheap')"
+    ]
+  },
+  {
+    title: "letters.py",
+    lines: [
+      "word = 'ticket'",
+      "",
+      "print(len(word))"
+    ]
+  },
+  {
+    title: "route.js",
+    lines: [
+      "fromCity = 'Burgas'",
+      "toCity = 'Sofia'",
+      "",
+      "console.log(fromCity + ' -> ' + toCity)"
     ]
   }
 ];
 
 const AI_VARIANTS = [
-{
-title: "price_calculator.ts",
-footer: "AI generated",
-lines: [
-"export function calculateDynamicTicketPrice(basePrice:number, isStudent:boolean){",
-"    const studentDiscountMultiplier = 0.70;",
-"",
-"    if(isStudent === true){",
-"        return Number((basePrice * studentDiscountMultiplier).toFixed(2));",
-"    }",
-"",
-"    return basePrice;",
-"}"
-]
-},
-
-{
-title: "email_validator.ts",
-footer: "AI generated",
-lines: [
-"export function validateEmailAddress(input:string):boolean{",
-"    const containsAtSymbol = input.includes('@');",
-"    const containsDotSymbol = input.includes('.');",
-"",
-"    return containsAtSymbol && containsDotSymbol;",
-"}"
-]
-},
-
-{
-title: "seatAvailability.ts",
-footer: "AI generated",
-lines: [
-"export function checkSeatAvailability(seatNumber:number, takenSeats:number[]):boolean{",
-"    const seatIsTaken = takenSeats.includes(seatNumber);",
-"",
-"    if(seatIsTaken === true){",
-"        return false;",
-"    }",
-"",
-"    return true;",
-"}"
-]
-},
-
-{
-title: "sumCalculator.ts",
-footer: "AI generated",
-lines: [
-"export function calculateSum(firstNumber:number, secondNumber:number):number{",
-"    const result = firstNumber + secondNumber;",
-"",
-"    return result;",
-"}"
-]
-}
+  {
+    title: "sumCalculator.ts",
+    lines: [
+      "export function calculateSum(firstNumber:number, secondNumber:number):number{",
+      "  const result = firstNumber + secondNumber;",
+      "  return result;",
+      "}"
+    ]
+  },
+  {
+    title: "priceCalculator.ts",
+    lines: [
+      "export function calculateDynamicTicketPrice(basePrice:number, isStudent:boolean):number{",
+      "  const studentDiscountMultiplier = 0.70;",
+      "  if(isStudent === true){",
+      "    return Number((basePrice * studentDiscountMultiplier).toFixed(2));",
+      "  }",
+      "  return basePrice;",
+      "}"
+    ]
+  },
+  {
+    title: "emailValidator.ts",
+    lines: [
+      "export function validateEmailAddress(input:string):boolean{",
+      "  const containsAtSymbol = input.includes('@');",
+      "  const containsDotSymbol = input.includes('.');",
+      "  return containsAtSymbol && containsDotSymbol;",
+      "}"
+    ]
+  },
+  {
+    title: "seatAvailability.ts",
+    lines: [
+      "export function checkSeatAvailability(seatNumber:number, takenSeats:number[]):boolean{",
+      "  const seatIsTaken = takenSeats.includes(seatNumber);",
+      "  if(seatIsTaken === true){",
+      "    return false;",
+      "  }",
+      "  return true;",
+      "}"
+    ]
+  },
+  {
+    title: "greetingBuilder.ts",
+    lines: [
+      "export function buildGreetingMessage(personName:string):string{",
+      "  const normalizedName = personName.trim();",
+      "  return 'Hello ' + normalizedName;",
+      "}"
+    ]
+  },
+  {
+    title: "routeFormatter.ts",
+    lines: [
+      "export function formatRouteLabel(origin:string, destination:string):string{",
+      "  const routeSeparator = ' -> ';",
+      "  return origin + routeSeparator + destination;",
+      "}"
+    ]
+  },
+  {
+    title: "scoreCheck.ts",
+    lines: [
+      "export function isExcellentScore(currentScore:number):boolean{",
+      "  const minimumExcellentScore = 5.5;",
+      "  return currentScore >= minimumExcellentScore;",
+      "}"
+    ]
+  },
+  {
+    title: "averageCalculator.ts",
+    lines: [
+      "export function calculateAverageValue(values:number[]):number{",
+      "  const total = values.reduce((acc, item) => acc + item, 0);",
+      "  return total / values.length;",
+      "}"
+    ]
+  },
+  {
+    title: "cartTotal.ts",
+    lines: [
+      "export function calculateCartTotal(prices:number[]):number{",
+      "  return prices.reduce((accumulator, currentPrice) => {",
+      "    return accumulator + currentPrice;",
+      "  }, 0);",
+      "}"
+    ]
+  },
+  {
+    title: "labelBuilder.ts",
+    lines: [
+      "export function buildSeatLabel(rowNumber:number, seatLetter:string):string{",
+      "  const normalizedLetter = seatLetter.toUpperCase();",
+      "  return String(rowNumber) + normalizedLetter;",
+      "}"
+    ]
+  },
+  {
+    title: "courseFormatter.ts",
+    lines: [
+      "export function formatCoursePresentation(routeLabel:string, departureHour:string):string{",
+      "  return routeLabel + ' ' + departureHour;",
+      "}"
+    ]
+  },
+  {
+    title: "containsChecker.ts",
+    lines: [
+      "export function containsFragment(input:string, fragment:string):boolean{",
+      "  const normalizedInput = input.toLowerCase();",
+      "  const normalizedFragment = fragment.toLowerCase();",
+      "  return normalizedInput.includes(normalizedFragment);",
+      "}"
+    ]
+  },
+  {
+    title: "cityTransformer.ts",
+    lines: [
+      "export function transformCityNameToUppercase(cityName:string):string{",
+      "  const sanitizedName = cityName.trim();",
+      "  return sanitizedName.toUpperCase();",
+      "}"
+    ]
+  },
+  {
+    title: "parityChecker.ts",
+    lines: [
+      "export function resolveParityLabel(value:number):string{",
+      "  const isEvenValue = value % 2 === 0;",
+      "  return isEvenValue ? 'even' : 'odd';",
+      "}"
+    ]
+  },
+  {
+    title: "priceInspector.ts",
+    lines: [
+      "export function getPriceState(price:number):string{",
+      "  const expensiveThreshold = 40;",
+      "  return price > expensiveThreshold ? 'expensive' : 'ok';",
+      "}"
+    ]
+  },
+  {
+    title: "nameValidator.ts",
+    lines: [
+      "export function isNameValid(name:string):boolean{",
+      "  const normalizedName = name.trim();",
+      "  return normalizedName.length > 2;",
+      "}"
+    ]
+  },
+  {
+    title: "lengthResolver.ts",
+    lines: [
+      "export function resolveWordLength(word:string):number{",
+      "  const normalizedWord = word.trim();",
+      "  return normalizedWord.length;",
+      "}"
+    ]
+  },
+  {
+    title: "userReader.ts",
+    lines: [
+      "export function readUserName(user:{name:string; age:number}):string{",
+      "  return user.name;",
+      "}"
+    ]
+  },
+  {
+    title: "cheapPrice.ts",
+    lines: [
+      "export function isCheapPrice(price:number):boolean{",
+      "  const cheapThreshold = 30;",
+      "  return price < cheapThreshold;",
+      "}"
+    ]
+  },
+  {
+    title: "multiplyNumbers.ts",
+    lines: [
+      "export function multiplyNumbers(firstValue:number, secondValue:number):number{",
+      "  return firstValue * secondValue;",
+      "}"
+    ]
+  },
+  {
+    title: "evenFilter.ts",
+    lines: [
+      "export function filterEvenValues(values:number[]):number[]{",
+      "  return values.filter((value) => value % 2 === 0);",
+      "}"
+    ]
+  },
+  {
+    title: "membershipChecker.ts",
+    lines: [
+      "export function containsSeatValue(values:number[], target:number):boolean{",
+      "  return values.includes(target);",
+      "}"
+    ]
+  },
+  {
+    title: "routeSummary.ts",
+    lines: [
+      "export function createRouteSummary(startCity:string, endCity:string):string{",
+      "  const arrowToken = ' -> ';",
+      "  return startCity + arrowToken + endCity;",
+      "}"
+    ]
+  },
+  {
+    title: "pricesReducer.ts",
+    lines: [
+      "export function reducePricesToTotal(prices:number[]):number{",
+      "  return prices.reduce((sum, current) => sum + current, 0);",
+      "}"
+    ]
+  }
 ];
 
-function humanSvg(index, side) {
-  const variant = HUMAN_VARIANTS[index % HUMAN_VARIANTS.length];
+function renderHumanSvg(variant) {
   return renderCodeEditorSvg({
     title: variant.title,
-    badge: "",
-    badgeColor: "#34d399",
-    bg: "#0b1220",
-    panel: "#111827",
+    bg: "#020713",
+    panel: "#020713",
     topbar: "rgba(255,255,255,0.04)",
     border: "rgba(255,255,255,0.08)",
-    text: "#e5e7eb",
-    muted: "#9ca3af",
-    keyword: "#60a5fa",
-    string: "#fbbf24",
-    func: "#f472b6",
-    number: "#fb7185",
-    comment: "#9ca3af",
-    accent: "#34d399",
-    lines: variant.lines,
-    footer: variant.footer
+    text: "#8ec5ff",
+    accent: "#3b82f6",
+    lines: variant.lines
   });
 }
 
-function aiSvg(index, side) {
-  const variant = AI_VARIANTS[index % AI_VARIANTS.length];
+function renderAiSvg(variant) {
   return renderCodeEditorSvg({
     title: variant.title,
-    badge: "",
-    badgeColor: "#22d3ee",
-    bg: "#061126",
-    panel: "#0b1732",
+    bg: "#020713",
+    panel: "#020713",
     topbar: "rgba(255,255,255,0.04)",
-    border: "rgba(34,211,238,0.18)",
-    text: "#e0f2fe",
-    muted: "#93c5fd",
-    keyword: "#38bdf8",
-    string: "#fbbf24",
-    func: "#c084fc",
-    number: "#fb7185",
-    comment: "#7dd3fc",
-    accent: "#22d3ee",
-    lines: variant.lines,
-    footer: variant.footer
+    border: "rgba(255,255,255,0.08)",
+    text: "#8ec5ff",
+    accent: "#3b82f6",
+    lines: variant.lines
   });
 }
 
-app.get("/generated/:kind/:variant/:side.svg", (req, res) => {
-  const { kind, variant, side } = req.params;
-  const n = Number(variant) || 0;
+app.get("/generated/:kind/:id/:side.svg", (req, res) => {
+  const { kind, id } = req.params;
+  const numericId = Number(id) || 0;
 
   let svg = "";
+
   if (kind === "human") {
-    svg = humanSvg(n, side);
+    const variant = HUMAN_VARIANTS[numericId % HUMAN_VARIANTS.length];
+    svg = renderHumanSvg(variant);
   } else {
-    svg = aiSvg(n, side);
+    const variant = AI_VARIANTS[numericId % AI_VARIANTS.length];
+    svg = renderAiSvg(variant);
   }
 
   res.setHeader("Content-Type", "image/svg+xml; charset=utf-8");
   res.send(svg);
 });
 
-function buildQuestionPool() {
-  const pool = [];
-  const answerTypes = [0, 1, 2, 3];
+function createQuestion(correct, leftKind, rightKind, leftIndex, rightIndex) {
+  const leftSource = leftKind === "human" ? HUMAN_VARIANTS : AI_VARIANTS;
+  const rightSource = rightKind === "human" ? HUMAN_VARIANTS : AI_VARIANTS;
+  const leftVariant = leftSource[leftIndex % leftSource.length];
+  const rightVariant = rightSource[rightIndex % rightSource.length];
 
-  for (let i = 0; i < 20; i++) {
-    const correct = answerTypes[i % 4];
-    let leftKind = "human";
-    let rightKind = "ai";
-
-    if (correct === 0) {
-      leftKind = "human";
-      rightKind = "ai";
-    } else if (correct === 1) {
-      leftKind = "ai";
-      rightKind = "human";
-    } else if (correct === 2) {
-      leftKind = "human";
-      rightKind = "human";
-    } else if (correct === 3) {
-      leftKind = "ai";
-      rightKind = "ai";
-    }
-
-    const leftVariant = i * 2;
-    const rightVariant = i * 2 + 1;
-
-    pool.push({
-      id: i + 1,
-      left: `/generated/${leftKind}/${leftVariant}/left.svg`,
-      right: `/generated/${rightKind}/${rightVariant}/right.svg`,
-      correct
-    });
-  }
-
-  return pool;
+  return {
+    id: crypto.randomUUID(),
+    correct,
+    leftCode: leftVariant.lines.join("\n"),
+    rightCode: rightVariant.lines.join("\n"),
+    leftTitle: leftVariant.title,
+    rightTitle: rightVariant.title
+  };
 }
 
-let questionPool = buildQuestionPool();
-let currentQuestions = shuffle(questionPool);
+function buildQuestionPool() {
+  const questions = [];
+  const answerTypes = [0, 1, 2, 3];
+
+  for (let i = 0; i < QUESTIONS_PER_GAME; i++) {
+    const correct = answerTypes[i % answerTypes.length];
+
+    if (correct === 0) {
+      const [leftHuman] = pickDifferentPair(HUMAN_VARIANTS);
+      const [rightAi] = pickDifferentPair(AI_VARIANTS);
+      questions.push(
+        createQuestion(
+          0,
+          "human",
+          "ai",
+          HUMAN_VARIANTS.indexOf(leftHuman),
+          AI_VARIANTS.indexOf(rightAi)
+        )
+      );
+    } else if (correct === 1) {
+      const [leftAi] = pickDifferentPair(AI_VARIANTS);
+      const [rightHuman] = pickDifferentPair(HUMAN_VARIANTS);
+      questions.push(
+        createQuestion(
+          1,
+          "ai",
+          "human",
+          AI_VARIANTS.indexOf(leftAi),
+          HUMAN_VARIANTS.indexOf(rightHuman)
+        )
+      );
+    } else if (correct === 2) {
+      const [leftHuman, rightHuman] = pickDifferentPair(HUMAN_VARIANTS);
+      questions.push(
+        createQuestion(
+          2,
+          "human",
+          "human",
+          HUMAN_VARIANTS.indexOf(leftHuman),
+          HUMAN_VARIANTS.indexOf(rightHuman)
+        )
+      );
+    } else {
+      const [leftAi, rightAi] = pickDifferentPair(AI_VARIANTS);
+      questions.push(
+        createQuestion(
+          3,
+          "ai",
+          "ai",
+          AI_VARIANTS.indexOf(leftAi),
+          AI_VARIANTS.indexOf(rightAi)
+        )
+      );
+    }
+  }
+
+  return shuffle(questions);
+}
+
+let currentQuestions = buildQuestionPool();
 
 const game = {
-  pin: GAME_PIN,
   state: "lobby",
   currentQuestionIndex: -1,
   questionEndsAt: 0,
@@ -453,11 +709,16 @@ function currentQuestion() {
 
 function answerText(code) {
   switch (code) {
-    case 0: return "Лявата е от човек, дясната е ИИ";
-    case 1: return "Дясната е от човек, лявата е ИИ";
-    case 2: return "И двете са от човек";
-    case 3: return "И двете са от ИИ";
-    default: return "";
+    case 0:
+      return "Лявата е от човек, дясната е ИИ";
+    case 1:
+      return "Дясната е от човек, лявата е ИИ";
+    case 2:
+      return "И двете са от човек";
+    case 3:
+      return "И двете са от ИИ";
+    default:
+      return "";
   }
 }
 
@@ -466,6 +727,7 @@ function playerListSorted() {
     .map((p) => {
       const answeredCount = Object.keys(p.answers).length;
       const correctCount = Object.values(p.answers).filter((a) => a.correct).length;
+
       return {
         token: p.token,
         name: p.name,
@@ -484,11 +746,13 @@ function playerListSorted() {
 
 function answeredStats() {
   const q = currentQuestion();
+
   if (!q) {
     return { answered: 0, unanswered: playersByToken.size };
   }
 
   let answered = 0;
+
   for (const player of playersByToken.values()) {
     if (player.answers[q.id]) answered++;
   }
@@ -504,15 +768,17 @@ function publicState() {
   const stats = answeredStats();
 
   return {
-    pin: game.pin,
     state: game.state,
     currentQuestionIndex: game.currentQuestionIndex,
     totalQuestions: currentQuestions.length,
     question: q
       ? {
           id: q.id,
-          left: q.left,
-          right: q.right,
+          leftCode: q.leftCode,
+          rightCode: q.rightCode,
+          leftTitle: q.leftTitle,
+          rightTitle: q.rightTitle,
+          correctChoice: q.correct,
           correctText: answerText(q.correct)
         }
       : null,
@@ -539,11 +805,11 @@ function privateState(player) {
 
     if (game.state === "reveal" || game.state === "finished") {
       if (ans.choice === null) {
-        revealMessage = "❌ Няма изпратен отговор";
+        revealMessage = "Няма изпратен отговор";
       } else if (ans.correct) {
-        revealMessage = `✅ Вярно! +${ans.points} точки`;
+        revealMessage = "Вярно! +" + ans.points + " точки";
       } else {
-        revealMessage = "❌ Грешен отговор";
+        revealMessage = "Грешен отговор";
       }
     }
   }
@@ -585,6 +851,30 @@ function scoreAnswer(question, choice, msLeft) {
   return { correct: true, points };
 }
 
+function moveToReveal() {
+  clearTimers();
+
+  game.state = "reveal";
+  game.questionEndsAt = 0;
+
+  const q = currentQuestion();
+
+  if (q) {
+    for (const player of playersByToken.values()) {
+      if (!player.answers[q.id]) {
+        player.answers[q.id] = {
+          choice: null,
+          correct: false,
+          points: 0,
+          msLeft: 0
+        };
+      }
+    }
+  }
+
+  emitAll();
+}
+
 function startQuestion(index) {
   clearTimers();
 
@@ -606,42 +896,20 @@ function startQuestion(index) {
     const remaining = game.questionEndsAt - Date.now();
 
     io.emit("game:timer", {
-      state: "question",
       remainingMs: Math.max(0, remaining),
       endsAt: game.questionEndsAt
     });
 
     if (remaining <= 0) {
-      clearTimers();
-      game.state = "reveal";
-      game.questionEndsAt = 0;
-
-      const q = currentQuestion();
-      if (q) {
-        for (const player of playersByToken.values()) {
-          if (!player.answers[q.id]) {
-            player.answers[q.id] = {
-              choice: null,
-              correct: false,
-              points: 0,
-              msLeft: 0
-            };
-          }
-        }
-      }
-
-      emitAll();
+      moveToReveal();
     }
-  }, 200);
+  }, 500);
 }
 
 function startGame() {
   clearTimers();
 
-  GAME_PIN = generatePin();
-  game.pin = GAME_PIN;
-  currentQuestions = shuffle(buildQuestionPool());
-
+  currentQuestions = buildQuestionPool();
   game.state = "question";
   game.currentQuestionIndex = 0;
   game.questionEndsAt = 0;
@@ -656,25 +924,7 @@ function startGame() {
 
 function nextOrSkip() {
   if (game.state === "question") {
-    clearTimers();
-
-    const q = currentQuestion();
-    if (q) {
-      for (const player of playersByToken.values()) {
-        if (!player.answers[q.id]) {
-          player.answers[q.id] = {
-            choice: null,
-            correct: false,
-            points: 0,
-            msLeft: 0
-          };
-        }
-      }
-    }
-
-    game.state = "reveal";
-    game.questionEndsAt = 0;
-    emitAll();
+    moveToReveal();
     return;
   }
 
@@ -686,10 +936,7 @@ function nextOrSkip() {
 function resetGame() {
   clearTimers();
 
-  GAME_PIN = generatePin();
-  game.pin = GAME_PIN;
-  currentQuestions = shuffle(buildQuestionPool());
-
+  currentQuestions = buildQuestionPool();
   game.state = "lobby";
   game.currentQuestionIndex = -1;
   game.questionEndsAt = 0;
@@ -702,17 +949,8 @@ function resetGame() {
   emitAll();
 }
 
-app.get("/api/pin", (req, res) => {
-  res.json({ pin: GAME_PIN });
-});
-
 io.on("connection", (socket) => {
-  socket.on("player:join", ({ token, name, pin }) => {
-    if (String(pin || "").trim() !== game.pin) {
-      socket.emit("player:error", "Невалиден Game PIN.");
-      return;
-    }
-
+  socket.on("player:join", ({ token, name }) => {
     let playerToken = token && String(token).trim();
     if (!playerToken) playerToken = crypto.randomUUID();
 
@@ -739,8 +977,7 @@ io.on("connection", (socket) => {
 
     socket.emit("player:joined", {
       token: player.token,
-      name: player.name,
-      pin: game.pin
+      name: player.name
     });
 
     socket.emit("game:state", publicState());
@@ -764,8 +1001,7 @@ io.on("connection", (socket) => {
 
     socket.emit("player:joined", {
       token: player.token,
-      name: player.name,
-      pin: game.pin
+      name: player.name
     });
 
     socket.emit("game:state", publicState());
@@ -818,7 +1054,20 @@ io.on("connection", (socket) => {
 
   socket.on("host:kickPlayer", ({ token }) => {
     if (!token) return;
-    playersByToken.delete(String(token));
+
+    const playerToken = String(token);
+    const player = playersByToken.get(playerToken);
+
+    if (!player) return;
+
+    if (player.socketId) {
+      const kickedSocket = io.sockets.sockets.get(player.socketId);
+      if (kickedSocket) {
+        kickedSocket.emit("player:kicked", "Премахнат си от играта от хоста.");
+      }
+    }
+
+    playersByToken.delete(playerToken);
     emitAll();
   });
 });
@@ -828,6 +1077,5 @@ server.listen(PORT, () => {
   console.log("AI or Human quiz is running");
   console.log("Players: http://localhost:" + PORT);
   console.log("Host:    http://localhost:" + PORT + "/host.html");
-  console.log("PIN:     " + GAME_PIN);
   console.log("");
 });

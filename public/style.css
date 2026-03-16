@@ -15,16 +15,17 @@
   --green: #22c55e;
 }
 
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
   min-height: 100%;
   background:
-    radial-gradient(circle at top left, rgba(124,58,237,0.20), transparent 28%),
-    radial-gradient(circle at top right, rgba(6,182,212,0.16), transparent 25%),
+    radial-gradient(circle at top left, rgba(124, 58, 237, 0.20), transparent 28%),
+    radial-gradient(circle at top right, rgba(6, 182, 212, 0.16), transparent 25%),
     linear-gradient(135deg, #050c1a 0%, #081326 50%, #070f21 100%);
   color: var(--text);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Segoe UI", "Noto Sans", "DejaVu Sans", Arial, sans-serif;
 }
 
 body {
@@ -49,7 +50,7 @@ body {
   border: 1px solid var(--border);
   border-radius: 28px;
   padding: 34px;
-  box-shadow: 0 24px 80px rgba(0,0,0,0.34);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.34);
   text-align: center;
 }
 
@@ -91,7 +92,7 @@ body {
   font-size: 18px;
   font-weight: 800;
   cursor: pointer;
-  transition: transform .15s ease, opacity .15s ease;
+  transition: transform 0.15s ease, opacity 0.15s ease, box-shadow 0.15s ease;
 }
 
 .primary-btn:hover,
@@ -127,6 +128,7 @@ body {
 .player-page .game-screen {
   min-height: 100vh;
   padding: 14px;
+  position: relative;
 }
 
 .topbar {
@@ -135,6 +137,64 @@ body {
   gap: 14px;
   align-items: center;
   margin-bottom: 14px;
+}
+
+.player-page .topbar {
+  grid-template-columns: 1fr;
+  align-items: start;
+  margin-bottom: 14px;
+}
+
+.player-page .top-left {
+  grid-column: 1;
+  grid-row: 1;
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 12px;
+  row-gap: 4px;
+  padding-right: 180px;
+}
+
+.player-page .top-left .player-name {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+.player-page .top-left .player-score,
+.player-page .top-left .player-rank {
+  margin-top: 0;
+}
+
+.player-page .top-center {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  text-align: right;
+}
+
+.player-page .top-right {
+  position: static;
+  transform: none;
+  z-index: 30;
+  justify-self: center;
+  margin: 0;
+}
+
+.player-timer-wrap {
+  position: absolute;
+  left: 50%;
+  top: var(--player-timer-y);
+  transform: translate(-50%, -50%);
+  margin: 0;
+  z-index: 40;
+  pointer-events: none;
+  width: max-content;
 }
 
 .top-left,
@@ -161,7 +221,6 @@ body {
 
 .player-score,
 .player-rank,
-.pin-small,
 .question-count {
   margin-top: 4px;
   color: var(--muted);
@@ -169,14 +228,14 @@ body {
 }
 
 .timer-circle {
-  width: 82px;
-  height: 82px;
+  width: 92px;
+  height: 92px;
   border-radius: 999px;
   background: linear-gradient(135deg, #111827, #2563eb);
-  border: 2px solid rgba(255,255,255,0.1);
+  border: 2px solid rgba(255, 255, 255, 0.1);
   display: grid;
   place-items: center;
-  font-size: 30px;
+  font-size: 34px;
   font-weight: 800;
 }
 
@@ -185,10 +244,25 @@ body {
   gap: 16px;
 }
 
+.player-page .game-main {
+  position: relative;
+}
+
 .images-wrap {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
+}
+
+.player-page .images-wrap {
+  position: relative;
+  --player-timer-y: 88%;
+}
+
+.images-wrap,
+.host-images {
+  --code-pad-top: 20px;
+  --code-pad-left: 8px;
 }
 
 .image-card {
@@ -198,20 +272,62 @@ body {
   overflow: hidden;
 }
 
+.large-code-card .code-block {
+  width: 100%;
+  height: 54vh;
+  min-height: 380px;
+  max-height: 680px;
+  background: #020713;
+  margin: 0;
+  padding: var(--code-pad-top) 10px 10px var(--code-pad-left);
+  overflow-y: auto;
+  overflow-x: hidden;
+  color: #8ec5ff;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 24px;
+  line-height: 1.6;
+  white-space: normal;
+}
+
+.code-line {
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  align-items: start;
+  column-gap: 0;
+}
+
+.line-number {
+  color: #9aa9c7;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  text-align: right;
+  padding: 0 6px 0 0;
+  font-size: 19px;
+  user-select: none;
+}
+
+.line-content {
+  display: block;
+  padding: 0 10px 0 4px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.images-wrap .large-code-card .code-block,
+.host-images .large-code-card .code-block,
+.images-wrap .code-line,
+.host-images .code-line,
+.images-wrap .line-number,
+.host-images .line-number,
+.images-wrap .line-content,
+.host-images .line-content {
+  box-sizing: border-box;
+}
+
 .image-title {
   padding: 12px 14px;
   font-weight: 700;
   border-bottom: 1px solid var(--border);
-  background: rgba(255,255,255,0.03);
-}
-
-.image-card img {
-  width: 100%;
-  height: 39vh;
-  min-height: 220px;
-  max-height: 460px;
-  object-fit: contain;
-  background: #020713;
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .answers-grid {
@@ -221,7 +337,7 @@ body {
 }
 
 .answer-btn {
-  min-height: 86px;
+  min-height: 88px;
   border: none;
   border-radius: 18px;
   color: white;
@@ -230,16 +346,49 @@ body {
   cursor: pointer;
   padding: 16px;
   text-align: center;
+  box-shadow: 0 0 0 rgba(0, 0, 0, 0);
 }
 
-.answer-btn.red { background: var(--red); }
-.answer-btn.blue { background: var(--blue); }
-.answer-btn.yellow { background: var(--yellow); color: #111827; }
-.answer-btn.green { background: var(--green); }
+.answer-btn.red {
+  background: var(--red);
+}
+
+.answer-btn.blue {
+  background: var(--blue);
+}
+
+.answer-btn.yellow {
+  background: var(--yellow);
+  color: #111827;
+}
+
+.answer-btn.green {
+  background: var(--green);
+}
 
 .answer-btn:disabled {
-  opacity: 0.66;
+  opacity: 0.72;
   cursor: not-allowed;
+}
+
+.correct-blink {
+  animation: correctBlink 0.8s infinite;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.75), 0 0 24px rgba(255, 255, 255, 0.35);
+}
+
+@keyframes correctBlink {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.035);
+    opacity: 0.72;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .status-box {
@@ -269,7 +418,7 @@ body {
   justify-content: space-between;
   gap: 12px;
   padding: 10px 0;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .lb-row:last-child {
@@ -299,9 +448,8 @@ body {
   margin-bottom: 22px;
 }
 
-.host-pin-box,
 .host-state-box {
-  background: rgba(255,255,255,0.03);
+  background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border);
   border-radius: 14px;
   padding: 12px 14px;
@@ -317,7 +465,7 @@ body {
 
 .timer-panel {
   margin-top: 18px;
-  background: rgba(255,255,255,0.03);
+  background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border);
   border-radius: 18px;
   padding: 18px;
@@ -361,7 +509,7 @@ body {
 
 .correct-box {
   margin-top: 16px;
-  background: rgba(255,255,255,0.03);
+  background: rgba(255, 255, 255, 0.03);
   border-radius: 16px;
   padding: 14px;
   font-size: 18px;
@@ -380,7 +528,7 @@ body {
   gap: 12px;
   align-items: center;
   padding: 10px 0;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .player-row:last-child {
@@ -464,7 +612,7 @@ body {
 
 .full-ranking {
   margin-top: 28px;
-  background: rgba(255,255,255,0.03);
+  background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border);
   border-radius: 22px;
   padding: 18px;
@@ -481,14 +629,14 @@ body {
   justify-content: space-between;
   gap: 12px;
   padding: 12px 0;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .rank-row:last-child {
   border-bottom: none;
 }
 
-@media (max-width: 980px) {
+@media (max-width: 1200px) {
   .host-layout {
     grid-template-columns: 1fr;
   }
@@ -498,6 +646,20 @@ body {
   .host-bottom-grid,
   .podium-grid {
     grid-template-columns: 1fr;
+  }
+
+  .player-page .images-wrap {
+    gap: 0px;
+  }
+
+  .player-page .images-wrap .player-timer-wrap {
+    position: static;
+    left: auto;
+    top: auto;
+    transform: none;
+    margin: -46px auto -46px;
+    width: max-content;
+    z-index: 40;
   }
 
   .topbar {
@@ -510,6 +672,15 @@ body {
 
   .timer-circle {
     margin: 0 auto;
+  }
+
+  .large-code-card .code-block {
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    font-size: 20px;
+    line-height: 1.5;
+    overflow: visible;
   }
 }
 
@@ -529,5 +700,12 @@ body {
 
   .brand {
     font-size: 30px;
+  }
+
+  .large-code-card .code-block {
+    font-size: 18px;
+    line-height: 1.45;
+    padding-top: 16px;
+    padding-bottom: 8px;
   }
 }
