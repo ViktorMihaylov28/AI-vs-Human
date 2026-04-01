@@ -1,0 +1,10 @@
+{
+  "teacher": {
+    "passwordHash": "$2b$10$o5lrrN4rvw3IFCFFgzT4q.YesIGVOFIqwcY54VYrpViyJosfZHF9u",
+    "role": "teacher"
+  },
+  "admin": {
+    "passwordHash": "$2b$10$bCA0CjGQnyLvo2bCPN1IIu5oQmZb8Va/hzrInRKzOPMz0ac7X.wve",
+    "role": "admin"
+  }
+}

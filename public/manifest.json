@@ -1,0 +1,21 @@
+{
+  "name": "AI или Човек?",
+  "short_name": "AI Човек",
+  "description": "Multiplayer quiz игра за разпознаване на AI и човешки код",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#050c1a",
+  "theme_color": "#050c1a",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["games", "education"],
+  "lang": "bg",
+  "dir": "ltr"
+}

@@ -1,0 +1,60 @@
+# ===========================================
+# Docker Ignore File
+# ===========================================
+
+# Dependencies
+node_modules
+npm-debug.log
+package-lock.json
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Logs
+logs
+*.log
+
+# Database
+*.db
+*.db-shm
+*.db-wal
+
+# SSL Certificates (copy manually if needed)
+*.pem
+*.key
+*.crt
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Documentation
+README.md
+*.md
+
+# Tests
+test
+tests
+coverage
+
+# Temporary files
+tmp
+temp
+*.tmp
