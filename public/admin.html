@@ -4,293 +4,199 @@
   <meta charset="UTF-8" />
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Админ панел - AI или Човек?</title>
+  <title>Админ - PGITECH</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="stylesheet" href="/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <style>
+    :root {
+      --primary: #8b5cf6;
+      --primary-dark: #7c3aed;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --info: #3b82f6;
+      --dark: #0f172a;
+      --darker: #020617;
+      --panel: #1e293b;
+      --border: #334155;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body { background: var(--darker); color: #fff; font-family: 'Segoe UI', system-ui, sans-serif; }
+
     .login-screen {
       min-height: 100vh;
       display: grid;
       place-items: center;
-      padding: 24px;
+      padding: 20px;
     }
 
     .login-card {
       width: 100%;
-      max-width: 420px;
+      max-width: 400px;
       background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 28px;
-      padding: 34px;
-      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.34);
+      border-radius: 24px;
+      padding: 40px;
+      box-shadow: 0 25px 50px rgba(0,0,0,0.5);
       text-align: center;
     }
 
-    .login-title {
-      font-size: 32px;
-      font-weight: 800;
-      margin-bottom: 8px;
-      background: linear-gradient(135deg, #8b5cf6 0%, #60a5fa 55%, #22d3ee 100%);
+    .login-logo {
+      font-size: 48px;
+      font-weight: 900;
+      background: linear-gradient(135deg, var(--primary), var(--info), #22d3ee);
       -webkit-background-clip: text;
-      background-clip: text;
+      color: transparent;
+      margin-bottom: 8px;
+    }
+
+    .login-subtitle { color: #94a3b8; margin-bottom: 32px; }
+
+    .form-input {
+      width: 100%;
+      padding: 14px 16px;
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      background: var(--dark);
+      color: #fff;
+      font-size: 16px;
+      margin-bottom: 12px;
+      transition: border-color 0.2s;
+    }
+
+    .form-input:focus { border-color: var(--primary); outline: none; }
+
+    .btn {
+      padding: 14px 28px;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: #fff; }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4); }
+
+    .btn-success { background: linear-gradient(135deg, var(--success), #16a34a); color: #fff; }
+    .btn-danger { background: linear-gradient(135deg, var(--danger), #dc2626); color: #fff; }
+    .btn-warning { background: linear-gradient(135deg, var(--warning), #d97706); color: #000; }
+    .btn-secondary { background: var(--border); color: #fff; }
+    .btn-small { padding: 8px 16px; font-size: 14px; }
+
+    .admin-container {
+      display: none;
+      min-height: 100vh;
+    }
+
+    .admin-header {
+      background: var(--dark);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-brand {
+      font-size: 24px;
+      font-weight: 900;
+      background: linear-gradient(135deg, var(--primary), var(--info));
+      -webkit-background-clip: text;
       color: transparent;
     }
 
-    .login-subtitle {
-      color: var(--muted);
-      margin-bottom: 24px;
-      font-size: 15px;
-    }
-
-    .admin-layout {
-      min-height: 100vh;
-      display: grid;
-      grid-template-columns: 280px 1fr;
-    }
-
-    .admin-sidebar {
-      background: rgba(6, 12, 22, 0.95);
-      border-right: 1px solid var(--border);
-      padding: 20px;
+    .header-info {
       display: flex;
-      flex-direction: column;
-    }
-
-    .admin-brand {
-      font-size: 24px;
-      font-weight: 800;
-      margin-bottom: 4px;
-    }
-
-    .admin-user-info {
-      color: var(--muted);
-      font-size: 13px;
-      margin-bottom: 20px;
-      padding-bottom: 16px;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .admin-nav-btn {
-      width: 100%;
-      padding: 14px 16px;
-      background: transparent;
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      color: var(--text);
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
-      text-align: left;
-      margin-bottom: 8px;
-      transition: all 0.15s ease;
-    }
-
-    .admin-nav-btn:hover,
-    .admin-nav-btn.active {
-      background: rgba(59, 130, 246, 0.15);
-      border-color: var(--blue);
-    }
-
-    .admin-main {
-      padding: 24px;
-      overflow-y: auto;
-    }
-
-    .admin-section {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 22px;
-      padding: 24px;
-      margin-bottom: 24px;
-    }
-
-    .admin-section h2 {
-      margin-top: 0;
-      margin-bottom: 20px;
-      font-size: 22px;
-    }
-
-    .form-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-    }
-
-    .form-group {
-      margin-bottom: 16px;
-    }
-
-    .form-group.full-width {
-      grid-column: 1 / -1;
-    }
-
-    .form-label {
-      display: block;
-      font-size: 14px;
-      font-weight: 600;
-      margin-bottom: 8px;
-      color: var(--muted);
-    }
-
-    .form-input,
-    .form-textarea,
-    .form-select {
-      width: 100%;
-      padding: 12px 14px;
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      background: rgba(9, 17, 34, 0.95);
-      color: #fff;
-      font-size: 15px;
-      outline: none;
-    }
-
-    .form-textarea {
-      min-height: 180px;
-      font-family: Consolas, 'Courier New', monospace;
-      font-size: 13px;
-      resize: vertical;
-    }
-
-    .form-input:focus,
-    .form-textarea:focus,
-    .form-select:focus {
-      border-color: var(--blue);
-    }
-
-    .btn-row {
-      display: flex;
-      gap: 12px;
-      margin-top: 20px;
-    }
-
-    .btn {
-      padding: 12px 24px;
-      border: none;
-      border-radius: 12px;
-      font-size: 15px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.15s ease;
-    }
-
-    .btn:hover {
-      transform: translateY(-1px);
-      opacity: 0.96;
-    }
-
-    .btn-primary {
-      background: linear-gradient(135deg, #7c3aed, #2563eb);
-      color: white;
-    }
-
-    .btn-secondary {
-      background: #334155;
-      color: white;
-    }
-
-    .btn-danger {
-      background: #dc2626;
-      color: white;
-    }
-
-    .btn-success {
-      background: #16a34a;
-      color: white;
-    }
-
-    .btn-small {
-      padding: 8px 14px;
-      font-size: 13px;
-    }
-
-    .question-list {
-      max-height: 500px;
-      overflow-y: auto;
-    }
-
-    .question-item {
-      background: rgba(9, 17, 34, 0.95);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 16px;
-      margin-bottom: 12px;
-    }
-
-    .question-item-header {
-      display: flex;
-      justify-content: space-between;
       align-items: center;
-      margin-bottom: 12px;
+      gap: 20px;
     }
 
-    .question-item-title {
+    .game-code-badge {
+      background: var(--panel);
+      border: 2px solid var(--primary);
+      border-radius: 12px;
+      padding: 8px 20px;
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: 3px;
+    }
+
+    .player-count-badge {
+      background: var(--success);
+      border-radius: 50px;
+      padding: 6px 16px;
       font-weight: 700;
-      font-size: 15px;
+      font-size: 14px;
     }
 
-    .question-item-actions {
+    .admin-tabs {
       display: flex;
-      gap: 8px;
+      background: var(--dark);
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
     }
 
-    .question-preview {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      font-size: 12px;
-      color: var(--muted);
+    .tab-btn {
+      padding: 16px 24px;
+      background: none;
+      border: none;
+      color: #94a3b8;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      white-space: nowrap;
+      transition: all 0.2s;
     }
 
-    .question-preview-box {
-      background: rgba(0, 0, 0, 0.3);
-      border-radius: 8px;
-      padding: 10px;
-      font-family: Consolas, monospace;
-      overflow: hidden;
-      max-height: 80px;
-    }
+    .tab-btn:hover { color: #fff; background: rgba(255,255,255,0.05); }
+    .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
 
-    .correct-badge {
-      display: inline-block;
-      padding: 4px 10px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 700;
-      margin-top: 10px;
-    }
+    .tab-content { display: none; padding: 24px; }
+    .tab-content.active { display: block; }
 
-    .correct-0 { background: var(--red); }
-    .correct-1 { background: var(--blue); }
-    .correct-2 { background: var(--yellow); color: #111; }
-    .correct-3 { background: var(--green); }
-
-    .game-status {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 16px;
-      margin-bottom: 24px;
-    }
-
-    .status-card {
-      background: rgba(9, 17, 34, 0.95);
-      border: 1px solid var(--border);
+    .card {
+      background: var(--panel);
       border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+
+    .card-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .card-title .icon { font-size: 24px; }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+
+    @media (max-width: 1024px) {
+      .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+    }
+
+    .stat-card {
+      background: var(--dark);
+      border-radius: 12px;
       padding: 20px;
       text-align: center;
     }
 
-    .status-card-value {
-      font-size: 32px;
-      font-weight: 800;
-      color: var(--blue);
-    }
-
-    .status-card-label {
-      font-size: 14px;
-      color: var(--muted);
-      margin-top: 4px;
-    }
+    .stat-value { font-size: 36px; font-weight: 800; color: var(--primary); }
+    .stat-label { font-size: 13px; color: #94a3b8; margin-top: 4px; }
 
     .game-controls {
       display: flex;
@@ -298,551 +204,514 @@
       flex-wrap: wrap;
     }
 
-    .leaderboard-table {
+    .question-preview {
+      background: var(--dark);
+      border-radius: 12px;
+      padding: 20px;
+      margin-top: 16px;
+    }
+
+    .code-preview {
+      background: #000;
+      border-radius: 8px;
+      padding: 16px;
+      font-family: 'Consolas', monospace;
+      font-size: 13px;
+      max-height: 200px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      color: #8ec5ff;
+    }
+
+    .players-table {
       width: 100%;
       border-collapse: collapse;
     }
 
-    .leaderboard-table th,
-    .leaderboard-table td {
-      padding: 12px;
+    .players-table th, .players-table td {
+      padding: 12px 16px;
       text-align: left;
       border-bottom: 1px solid var(--border);
     }
 
-    .leaderboard-table th {
-      color: var(--muted);
-      font-weight: 600;
-      font-size: 13px;
-    }
+    .players-table th { color: #94a3b8; font-weight: 600; font-size: 13px; }
+    .players-table tr:hover { background: rgba(255,255,255,0.03); }
 
-    .leaderboard-table tr:hover {
-      background: rgba(255, 255, 255, 0.02);
-    }
-
-    .import-export-row {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 16px;
-    }
-
-    .file-input-wrapper {
-      position: relative;
-    }
-
-    .file-input {
-      display: none;
-    }
-
-    .notification {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      padding: 16px 24px;
-      border-radius: 12px;
-      font-weight: 600;
-      z-index: 1000;
-      animation: slideIn 0.3s ease;
-    }
-
-    .notification.success {
-      background: var(--green);
-      color: white;
-    }
-
-    .notification.error {
-      background: var(--red);
-      color: white;
-    }
-
-    @keyframes slideIn {
-      from {
-        transform: translateX(100%);
-        opacity: 0;
-      }
-      to {
-        transform: translateX(0);
-        opacity: 1;
-      }
-    }
-
-    .hidden {
-      display: none !important;
-    }
-
-    .edit-modal {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.8);
-      display: grid;
-      place-items: center;
-      z-index: 100;
-    }
-
-    .edit-modal-content {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 22px;
-      padding: 28px;
-      width: 90%;
-      max-width: 800px;
-      max-height: 90vh;
-      overflow-y: auto;
-    }
-
-    .edit-modal h2 {
-      margin-top: 0;
-    }
-
-    .reorder-hint {
-      font-size: 13px;
-      color: var(--muted);
-      margin-bottom: 12px;
-    }
-
-    .host-question-preview {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 22px;
-      padding: 20px;
-    }
-
-    .host-question-preview h3 {
-      margin: 0 0 16px 0;
-      font-size: 18px;
-    }
-
-    .host-images {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-    }
-
-    .large-code-card {
-      background: #020713;
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 16px;
-      min-height: 200px;
-    }
-
-    .image-title {
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--muted);
-      margin-bottom: 12px;
-    }
-
-    .code-block {
-      font-family: Consolas, 'Courier New', monospace;
-      font-size: 14px;
-      line-height: 1.6;
-      white-space: pre-wrap;
-      word-break: break-all;
-      color: #8ec5ff;
-      max-height: 180px;
-      overflow-y: auto;
-    }
-
-    .correct-box {
-      margin-top: 16px;
-      padding: 12px 16px;
-      background: rgba(59, 130, 246, 0.15);
-      border: 1px solid var(--blue);
-      border-radius: 12px;
-      font-weight: 600;
-      color: var(--blue);
-    }
-
-    .timer-display {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 20px;
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-    }
-
-    .timer-label {
-      font-size: 14px;
-      color: var(--muted);
-      margin-bottom: 8px;
-    }
-
-    .timer-big {
-      font-size: 64px;
-      font-weight: 800;
-      color: var(--green);
-      text-shadow: 0 0 30px rgba(34, 197, 94, 0.5);
-    }
-
-    .timer-big.warning {
-      color: var(--yellow);
-      text-shadow: 0 0 30px rgba(234, 179, 8, 0.5);
-    }
-
-    .timer-big.danger {
-      color: var(--red);
-      text-shadow: 0 0 30px rgba(239, 68, 68, 0.5);
-      animation: pulse 0.5s ease infinite;
-    }
-
-    @keyframes pulse {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.05); }
-    }
-
-    .game-panels-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-    }
-
-    .players-scroll,
-    .leaderboard-scroll {
-      max-height: 300px;
-      overflow-y: auto;
-    }
-
-    .player-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px 12px;
-      background: rgba(0, 0, 0, 0.3);
-      border-radius: 8px;
-      margin-bottom: 6px;
-      font-size: 14px;
-    }
-
-    .player-name {
-      font-weight: 600;
-    }
-
-    .player-score {
-      color: var(--blue);
-      font-weight: 700;
-    }
-
-    .leaderboard-row {
-      display: flex;
-      align-items: center;
-      padding: 8px 12px;
-      background: rgba(0, 0, 0, 0.3);
-      border-radius: 8px;
-      margin-bottom: 6px;
-      font-size: 14px;
-    }
-
-    .leaderboard-rank {
-      width: 28px;
-      height: 28px;
-      display: flex;
+    .player-rank {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: inline-flex;
       align-items: center;
       justify-content: center;
-      border-radius: 50%;
       font-weight: 700;
-      font-size: 12px;
-      margin-right: 12px;
+      font-size: 14px;
     }
 
-    .rank-1 { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #111; }
-    .rank-2 { background: linear-gradient(135deg, #9ca3af, #6b7280); color: #111; }
+    .rank-1 { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #000; }
+    .rank-2 { background: linear-gradient(135deg, #94a3b8, #64748b); color: #000; }
     .rank-3 { background: linear-gradient(135deg, #d97706, #b45309); color: #fff; }
-    .rank-default { background: var(--border); color: var(--text); }
 
-    .leaderboard-name {
-      flex: 1;
+    .action-btn {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
       font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
     }
 
-    .leaderboard-score {
-      color: var(--blue);
-      font-weight: 700;
+    .action-btn.kick { background: rgba(239, 68, 68, 0.2); color: var(--danger); }
+    .action-btn.kick:hover { background: var(--danger); color: #fff; }
+
+    .answer-bars { margin-top: 16px; }
+
+    .answer-bar-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
     }
 
-    @media (max-width: 1024px) {
-      .admin-layout {
-        grid-template-columns: 1fr;
-      }
+    .answer-bar-label { width: 120px; font-size: 13px; color: #94a3b8; }
+    .answer-bar-track { flex: 1; height: 24px; background: var(--dark); border-radius: 12px; overflow: hidden; }
+    .answer-bar-fill { height: 100%; border-radius: 12px; transition: width 0.5s ease; min-width: 2px; }
+    .answer-bar-fill.red { background: linear-gradient(90deg, #ef4444, #f87171); }
+    .answer-bar-fill.blue { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
+    .answer-bar-fill.yellow { background: linear-gradient(90deg, #eab308, #facc15); }
+    .answer-bar-fill.green { background: linear-gradient(90deg, #22c55e, #4ade80); }
+    .answer-bar-count { width: 40px; text-align: right; font-weight: 700; }
 
-      .admin-sidebar {
-        flex-direction: row;
-        flex-wrap: wrap;
-        gap: 8px;
-        padding: 12px;
-      }
-
-      .admin-brand,
-      .admin-user-info {
-        width: 100%;
-      }
-
-      .form-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .game-status {
-        grid-template-columns: repeat(2, 1fr);
-      }
+    .timer-big {
+      font-size: 72px;
+      font-weight: 900;
+      color: var(--info);
+      text-align: center;
     }
+
+    .timer-big.danger { color: var(--danger); animation: pulse 0.5s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+    .qr-container {
+      background: #fff;
+      border-radius: 16px;
+      padding: 16px;
+      display: inline-block;
+    }
+
+    .proctoring-log {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+    }
+
+    .proctoring-log:last-child { border-bottom: none; }
+    .proctoring-log .time { color: #64748b; font-size: 12px; }
+    .proctoring-log .type { font-weight: 700; color: var(--warning); }
+    .proctoring-log .player { color: var(--info); }
+
+    .hidden { display: none !important; }
+
+    .waiting-state {
+      text-align: center;
+      padding: 60px 20px;
+    }
+
+    .waiting-state .icon { font-size: 80px; margin-bottom: 20px; }
+    .waiting-state h2 { font-size: 28px; margin-bottom: 12px; }
+    .waiting-state p { color: #94a3b8; }
+
+    .lobby-ready {
+      text-align: center;
+      padding: 40px;
+    }
+
+    .lobby-ready .qr-section {
+      margin: 30px 0;
+    }
+
+    .question-card {
+      background: var(--dark);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .question-card:hover { background: rgba(139, 92, 246, 0.1); border-color: var(--primary); }
+    .question-card.selected { border: 2px solid var(--primary); background: rgba(139, 92, 246, 0.15); }
+
+    .question-num { 
+      width: 36px; height: 36px; border-radius: 50%; 
+      background: var(--border); display: flex; align-items: center; justify-content: center;
+      font-weight: 700; margin-right: 12px;
+    }
+
+    .question-actions { display: flex; gap: 8px; }
+
+    .settings-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+    }
+
+    .setting-item {
+      background: var(--dark);
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .setting-item label {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #94a3b8;
+    }
+
+    .setting-item input, .setting-item select {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      background: var(--panel);
+      color: #fff;
+      font-size: 16px;
+    }
+
+    .setting-item input:focus, .setting-item select:focus {
+      border-color: var(--primary);
+      outline: none;
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 52px;
+      height: 28px;
+    }
+
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background: var(--border);
+      border-radius: 28px;
+      transition: 0.3s;
+    }
+
+    .toggle-slider:before {
+      content: "";
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      left: 4px;
+      bottom: 4px;
+      background: #fff;
+      border-radius: 50%;
+      transition: 0.3s;
+    }
+
+    .toggle-switch input:checked + .toggle-slider { background: var(--success); }
+    .toggle-switch input:checked + .toggle-slider:before { transform: translateX(24px); }
   </style>
-  <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
+  <!-- LOGIN SCREEN -->
   <div class="login-screen" id="loginScreen">
     <div class="login-card">
-      <div class="login-title">Админ панел</div>
-      <div class="login-subtitle">AI или Човек?</div>
-      
-      <input type="text" id="loginUsername" class="input" placeholder="Потребителско име" />
-      <input type="password" id="loginPassword" class="input" placeholder="Парола" />
-      <button id="loginBtn" class="primary-btn">Вход</button>
-      <div id="loginError" class="error-text"></div>
+      <div class="login-logo">PGITECH</div>
+      <p class="login-subtitle">Админ панел</p>
+      <form id="loginForm">
+        <input type="text" id="loginUsername" class="form-input" placeholder="Потребител" autocomplete="username" />
+        <input type="password" id="loginPassword" class="form-input" placeholder="Парола" autocomplete="current-password" />
+        <button type="submit" class="btn btn-primary" style="width: 100%;">Вход</button>
+      </form>
+      <p style="margin-top: 20px; color: #64748b; font-size: 13px;">
+        Нямаш акаунт? <a href="#" id="showRegister" style="color: var(--primary);">Регистрирай се</a>
+      </p>
+    </div>
+
+    <div class="login-card hidden" id="registerCard">
+      <div class="login-logo">PGITECH</div>
+      <p class="login-subtitle">Регистрация</p>
+      <form id="registerForm">
+        <input type="text" id="regUsername" class="form-input" placeholder="Потребител" autocomplete="username" />
+        <input type="password" id="regPassword" class="form-input" placeholder="Парола" autocomplete="new-password" />
+        <input type="password" id="regPasswordConfirm" class="form-input" placeholder="Потвърди парола" autocomplete="new-password" />
+        <button type="submit" class="btn btn-primary" style="width: 100%;">Регистрация</button>
+      </form>
+      <p style="margin-top: 20px; color: #64748b; font-size: 13px;">
+        Имаш акаунт? <a href="#" id="showLogin" style="color: var(--primary);">Влез</a>
+      </p>
     </div>
   </div>
 
-  <div class="admin-layout hidden" id="adminPanel">
-    <aside class="admin-sidebar">
-      <div class="admin-brand">Админ</div>
-      <div class="admin-user-info" id="userInfo">Logged in as: <span id="userName">-</span></div>
-      
-      <button class="admin-nav-btn active" data-section="questions">Управление на въпроси</button>
-      <button class="admin-nav-btn" data-section="create">Добавяне на въпрос</button>
-      <button class="admin-nav-btn" data-section="game">Контрол на играта</button>
-      <button class="admin-nav-btn" data-section="players">Играчи</button>
-      <button class="admin-nav-btn" data-section="import-export">Импорт/Експорт</button>
-      
-      <div style="flex: 1;"></div>
-      <button class="btn btn-secondary btn-small" id="logoutBtn" style="width: 100%;">Изход</button>
-    </aside>
+  <!-- ADMIN PANEL -->
+  <div class="admin-container" id="adminContainer">
+    <header class="admin-header">
+      <div class="header-brand">PGITECH</div>
+      <div class="header-info">
+        <div class="game-code-badge" id="gameCodeDisplay">------</div>
+        <div class="player-count-badge"><span id="playersCount">0</span> играчи</div>
+        <button class="btn btn-secondary btn-small" id="settingsBtn">Настройки</button>
+        <button class="btn btn-secondary btn-small" id="logoutBtn">Изход</button>
+      </div>
+    </header>
 
-    <main class="admin-main">
-      <section class="admin-section" id="section-questions">
-        <h2>Въпроси</h2>
-        <div id="questionsList" class="question-list"></div>
-      </section>
+    <nav class="admin-tabs">
+      <button class="tab-btn active" data-tab="lobby">Лоби</button>
+      <button class="tab-btn" data-tab="game">Игра</button>
+      <button class="tab-btn" data-tab="players">Играчи</button>
+      <button class="tab-btn" data-tab="questions">Въпроси</button>
+      <button class="tab-btn" data-tab="proctoring">Прокторинг</button>
+    </nav>
 
-      <section class="admin-section hidden" id="section-create">
-        <h2>Добавяне на нов въпрос</h2>
-        <div class="form-grid">
-          <div class="form-group">
-            <label class="form-label">Ляв код</label>
-            <textarea id="newLeftCode" class="form-textarea" placeholder="Код за левия панел..."></textarea>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Десен код</label>
-            <textarea id="newRightCode" class="form-textarea" placeholder="Код за десния панел..."></textarea>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Заглавие на левия код</label>
-            <input type="text" id="newLeftTitle" class="form-input" value="left_code.py" />
-          </div>
-          <div class="form-group">
-            <label class="form-label">Заглавие на десния код</label>
-            <input type="text" id="newRightTitle" class="form-input" value="right_code.py" />
-          </div>
-        </div>
-        
-        <h3 style="margin-top: 20px; font-size: 16px;">Текст на бутоните</h3>
-        <div class="form-grid">
-          <div class="form-group">
-            <label class="form-label">Бутон 0</label>
-            <input type="text" id="newBtn0" class="form-input" value="Лявата е от човек, дясната е ИИ" />
-          </div>
-          <div class="form-group">
-            <label class="form-label">Бутон 1</label>
-            <input type="text" id="newBtn1" class="form-input" value="Дясната е от човек, лявата е ИИ" />
-          </div>
-          <div class="form-group">
-            <label class="form-label">Бутон 2</label>
-            <input type="text" id="newBtn2" class="form-input" value="И двете са от човек" />
-          </div>
-          <div class="form-group">
-            <label class="form-label">Бутон 3</label>
-            <input type="text" id="newBtn3" class="form-input" value="И двете са от ИИ" />
-          </div>
-        </div>
-        
-        <div class="form-group" style="margin-top: 16px;">
-          <label class="form-label">Правилен отговор</label>
-          <select id="newCorrect" class="form-select">
-            <option value="0">0 - Лявата е от човек, дясната е ИИ</option>
-            <option value="1">1 - Дясната е от човек, лявата е ИИ</option>
-            <option value="2">2 - И двете са от човек</option>
-            <option value="3">3 - И двете са от ИИ</option>
-          </select>
-        </div>
-        
-        <div class="btn-row">
-          <button id="addQuestionBtn" class="btn btn-primary">Добави въпрос</button>
-          <button id="clearFormBtn" class="btn btn-secondary">Изчисти</button>
-        </div>
-      </section>
+    <!-- LOBBY TAB -->
+    <div class="tab-content active" id="tab-lobby">
+      <div id="waitingState" class="waiting-state">
+        <div class="icon">🎮</div>
+        <h2>Готов ли си?</h2>
+        <p>Създай игра и покани играчи!</p>
+        <button class="btn btn-primary" id="createGameBtn" style="margin-top: 24px;">Създай игра</button>
+      </div>
 
-      <section class="admin-section hidden" id="section-game">
-        <h2>Контрол на играта</h2>
-        
-        <div class="game-status">
-          <div class="status-card">
-            <div class="status-card-value" id="gameState">lobby</div>
-            <div class="status-card-label">Статус</div>
-          </div>
-          <div class="status-card">
-            <div class="status-card-value" id="playersCount">0</div>
-            <div class="status-card-label">Играчи</div>
-          </div>
-          <div class="status-card">
-            <div class="status-card-value" id="questionNum">0/0</div>
-            <div class="status-card-label">Въпрос</div>
-          </div>
-          <div class="status-card">
-            <div class="status-card-value" id="answeredCount">0</div>
-            <div class="status-card-label">Отговорили</div>
-          </div>
-        </div>
-
-        <div class="game-controls">
-          <button id="startGameBtn" class="btn btn-success">Старт на играта</button>
-          <button id="nextGameBtn" class="btn btn-primary">Следващ въпрос</button>
-          <button id="resetGameBtn" class="btn btn-danger">Нулиране</button>
-        </div>
-
-        <div class="host-question-preview" style="margin-top: 24px;">
-          <h3>Преглед на въпроса</h3>
-          <div class="host-images">
-            <div class="image-card large-code-card">
-              <div class="image-title" id="hostLeftCodeTitle">Ляв код</div>
-              <div id="hostLeftCode" class="code-block"></div>
+      <div class="hidden" id="lobbyReady">
+        <div class="lobby-ready">
+          <h2>Играта е готова!</h2>
+          <p style="color: #94a3b8; margin: 16px 0;">Покажи този QR код на играчите</p>
+          <div class="qr-section">
+            <div class="qr-container">
+              <div id="qrCodeContainer"></div>
             </div>
-            <div class="image-card large-code-card">
-              <div class="image-title" id="hostRightCodeTitle">Десен код</div>
-              <div id="hostRightCode" class="code-block"></div>
+            <p style="margin-top: 16px; font-size: 18px; font-weight: 700; letter-spacing: 4px;" id="lobbyGameCode">------</p>
+          </div>
+          <div class="grid-3" style="max-width: 400px; margin: 0 auto;">
+            <div class="stat-card">
+              <div class="stat-value" id="lobbyPlayers">0</div>
+              <div class="stat-label">Играчи</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="lobbyQuestions">0</div>
+              <div class="stat-label">Въпроси</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="lobbyTime">15с</div>
+              <div class="stat-label">Време</div>
             </div>
           </div>
-          <div class="correct-box" id="correctAnswerBox" style="display: none;">
-            Правилен отговор: <span id="correctAnswerText">-</span>
-          </div>
+          <button class="btn btn-success" id="startGameBtn" style="margin-top: 30px; padding: 16px 48px; font-size: 18px;">🚀 Старт на играта!</button>
         </div>
+      </div>
+    </div>
 
-        <div class="timer-display" id="timerDisplay" style="display: none; margin-top: 16px;">
-          <div class="timer-label">Оставащо време</div>
+    <!-- GAME TAB -->
+    <div class="tab-content" id="tab-game">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title"><span class="icon">⏱️</span> Таймер</div>
           <div class="timer-big" id="hostTimer">15</div>
-        </div>
-
-        <div class="game-panels-grid" style="margin-top: 24px;">
-          <div class="panel-card">
-            <h3>Играчи</h3>
-            <div id="adminPlayersList" class="players-scroll"></div>
-          </div>
-          <div class="panel-card">
-            <h3>Класиране</h3>
-            <div id="adminLeaderboard" class="leaderboard-scroll"></div>
+          <div id="timerDisplay" class="hidden" style="text-align: center; margin-top: 12px; color: #94a3b8;">
+            Следващ въпрос след <span id="pauseCountdown">5</span>с
           </div>
         </div>
-      </section>
 
-      <section class="admin-section hidden" id="section-players">
-        <h2>Играчи</h2>
-        <div style="max-height: 400px; overflow-y: auto;">
-          <table class="leaderboard-table" id="playersTable">
+        <div class="card">
+          <div class="card-title"><span class="icon">📊</span> Прогрес</div>
+          <div class="grid-3">
+            <div class="stat-card">
+              <div class="stat-value" id="questionNum">0/0</div>
+              <div class="stat-label">Въпрос</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="answeredCount">0</div>
+              <div class="stat-label">Отговорили</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="totalPlayersCount">0</div>
+              <div class="stat-label">Общо</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span class="icon">📈</span> Разпределение на отговорите</div>
+        <div class="answer-bars">
+          <div class="answer-bar-item">
+            <span class="answer-bar-label">Лява е Човек</span>
+            <div class="answer-bar-track"><div class="answer-bar-fill red" id="bar0"></div></div>
+            <span class="answer-bar-count" id="count0">0</span>
+          </div>
+          <div class="answer-bar-item">
+            <span class="answer-bar-label">Дясна е Човек</span>
+            <div class="answer-bar-track"><div class="answer-bar-fill blue" id="bar1"></div></div>
+            <span class="answer-bar-count" id="count1">0</span>
+          </div>
+          <div class="answer-bar-item">
+            <span class="answer-bar-label">Двете са Човек</span>
+            <div class="answer-bar-track"><div class="answer-bar-fill yellow" id="bar2"></div></div>
+            <span class="answer-bar-count" id="count2">0</span>
+          </div>
+          <div class="answer-bar-item">
+            <span class="answer-bar-label">Двете са ИИ</span>
+            <div class="answer-bar-track"><div class="answer-bar-fill green" id="bar3"></div></div>
+            <span class="answer-bar-count" id="count3">0</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span class="icon">👁️</span> Преглед на въпроса</div>
+        <div class="question-preview">
+          <div id="correctAnswerBox" class="hidden" style="background: rgba(34, 197, 94, 0.2); border: 1px solid var(--success); border-radius: 8px; padding: 12px; margin-bottom: 12px; color: var(--success); font-weight: 700;">
+            ✅ Верен отговор: <span id="correctAnswerText">-</span>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div>
+              <div style="font-size: 12px; color: #64748b; margin-bottom: 4px;" id="leftCodeTitle">Ляв код</div>
+              <div class="code-preview" id="hostLeftCode"></div>
+            </div>
+            <div>
+              <div style="font-size: 12px; color: #64748b; margin-bottom: 4px;" id="rightCodeTitle">Десен код</div>
+              <div class="code-preview" id="hostRightCode"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="game-controls" style="margin-top: 20px;">
+        <button class="btn btn-primary" id="nextGameBtn">⏭️ Следващ въпрос</button>
+        <button class="btn btn-warning" id="pauseGameBtn">⏸️ Пауза</button>
+        <button class="btn btn-success hidden" id="resumeGameBtn">▶️ Продължи</button>
+        <button class="btn btn-danger" id="endGameBtn">⏹️ Край на играта</button>
+      </div>
+    </div>
+
+    <!-- PLAYERS TAB -->
+    <div class="tab-content" id="tab-players">
+      <div class="card">
+        <div class="card-title"><span class="icon">👥</span> Играчи в класиране</div>
+        <div id="adminLeaderboard"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span class="icon">📋</span> Всички играчи</div>
+        <div style="overflow-x: auto;">
+          <table class="players-table">
             <thead>
               <tr>
                 <th>#</th>
                 <th>Име</th>
                 <th>Точки</th>
-                <th>Верни отговори</th>
+                <th>Верни</th>
                 <th>Действия</th>
               </tr>
             </thead>
             <tbody id="playersBody"></tbody>
           </table>
         </div>
-        <div id="noPlayersMsg" class="hidden" style="text-align: center; color: var(--muted); padding: 40px;">
-          Няма свързани играчи
-        </div>
-      </section>
+      </div>
+    </div>
 
-      <section class="admin-section hidden" id="section-import-export">
-        <h2>Импорт / Експорт</h2>
-        
-        <div class="import-export-row">
-          <button id="exportBtn" class="btn btn-secondary">Експорт (JSON)</button>
-          <div class="file-input-wrapper">
-            <button class="btn btn-secondary" id="importBtn">Импорт от файл</button>
-            <input type="file" id="importFile" class="file-input" accept=".json" />
+    <!-- QUESTIONS TAB -->
+    <div class="tab-content" id="tab-questions">
+      <div class="card">
+        <div class="card-title"><span class="icon">➕</span> Добави въпрос</div>
+        <div class="grid-2" style="margin-bottom: 20px;">
+          <div class="form-group">
+            <label>Тип въпрос</label>
+            <select id="newQuestionType" class="form-input">
+              <option value="code">🖥️ Код (AI vs Човек)</option>
+              <option value="multiple_choice">📝 Множествен избор</option>
+              <option value="true_false">✓ Вярно/Невярно</option>
+              <option value="type_answer">⌨️ Текстов отговор</option>
+              <option value="fill_blank">📝 Попълни празнините</option>
+              <option value="matching">🔗 Свържи двойките</option>
+              <option value="slider">📊 Слайдър</option>
+              <option value="numeric">🔢 Числов отговор</option>
+            </select>
           </div>
         </div>
-        
-        <p class="reorder-hint">Можете да пренаредите въпросите с първото число във всяко квадратче по-долу.</p>
-        <div id="reorderList" style="max-height: 400px; overflow-y: auto;"></div>
+        <div id="questionTypeFields"></div>
         <div class="btn-row">
-          <button id="saveOrderBtn" class="btn btn-primary">Запази реда</button>
+          <button class="btn btn-primary" id="saveQuestionBtn">💾 Запази въпроса</button>
+          <button class="btn btn-secondary" id="cancelQuestionBtn">Отказ</button>
         </div>
-      </section>
-    </main>
-  </div>
+      </div>
 
-  <div class="edit-modal hidden" id="editModal">
-    <div class="edit-modal-content">
-      <h2>Редактиране на въпрос</h2>
-      <input type="hidden" id="editQuestionId" />
-      <div class="form-grid">
-        <div class="form-group">
-          <label class="form-label">Ляв код</label>
-          <textarea id="editLeftCode" class="form-textarea"></textarea>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Десен код</label>
-          <textarea id="editRightCode" class="form-textarea"></textarea>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Заглавие на левия код</label>
-          <input type="text" id="editLeftTitle" class="form-input" />
-        </div>
-        <div class="form-group">
-          <label class="form-label">Заглавие на десния код</label>
-          <input type="text" id="editRightTitle" class="form-input" />
+      <div class="card">
+        <div class="card-title"><span class="icon">📚</span> Въпроси (<span id="questionsCount">0</span>)</div>
+        <div id="questionsList"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span class="icon">⚙️</span> Импорт/Експорт</div>
+        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+          <button class="btn btn-secondary" id="exportBtn">📤 Експорт JSON</button>
+          <label class="btn btn-secondary" style="cursor: pointer;">📥 Импорт JSON<input type="file" id="importFile" class="hidden" accept=".json" /></label>
         </div>
       </div>
-      
-      <h3 style="margin-top: 20px; font-size: 16px;">Текст на бутоните</h3>
-      <div class="form-grid">
-        <div class="form-group">
-          <label class="form-label">Бутон 0</label>
-          <input type="text" id="editBtn0" class="form-input" />
+    </div>
+
+    <!-- PROCTORING TAB -->
+    <div class="tab-content" id="tab-proctoring">
+      <div class="card">
+        <div class="card-title"><span class="icon">🔒</span> Прокторинг логове</div>
+        <div id="proctoringLogs" style="max-height: 400px; overflow-y: auto;">
+          <p style="color: #64748b; text-align: center; padding: 40px;">Няма логове за показване</p>
         </div>
-        <div class="form-group">
-          <label class="form-label">Бутон 1</label>
-          <input type="text" id="editBtn1" class="form-input" />
-        </div>
-        <div class="form-group">
-          <label class="form-label">Бутон 2</label>
-          <input type="text" id="editBtn2" class="form-input" />
-        </div>
-        <div class="form-group">
-          <label class="form-label">Бутон 3</label>
-          <input type="text" id="editBtn3" class="form-input" />
-        </div>
+        <button class="btn btn-secondary btn-small" id="refreshProctoringBtn" style="margin-top: 16px;">🔄 Обнови</button>
       </div>
-      
-      <div class="form-group" style="margin-top: 16px;">
-        <label class="form-label">Правилен отговор</label>
-        <select id="editCorrect" class="form-select">
-          <option value="0">0 - Лявата е от човек, дясната е ИИ</option>
-          <option value="1">1 - Дясната е от човек, лявата е ИИ</option>
-          <option value="2">2 - И двете са от човек</option>
-          <option value="3">3 - И двете са от ИИ</option>
-        </select>
-      </div>
-      
-      <div class="btn-row">
-        <button id="saveEditBtn" class="btn btn-primary">Запази промените</button>
-        <button id="cancelEditBtn" class="btn btn-secondary">Отказ</button>
+    </div>
+
+    <!-- SETTINGS MODAL -->
+    <div class="hidden" id="settingsModal" style="position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 1000;">
+      <div class="card" style="max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <h3 style="font-size: 20px;">⚙️ Настройки на играта</h3>
+          <button id="closeSettingsBtn" style="background: none; border: none; color: #fff; font-size: 24px; cursor: pointer;">×</button>
+        </div>
+        <div class="settings-grid">
+          <div class="setting-item">
+            <label>Брой въпроси</label>
+            <input type="number" id="settingQuestionsCount" value="20" min="1" max="100" />
+          </div>
+          <div class="setting-item">
+            <label>Време за въпрос (сек)</label>
+            <input type="number" id="settingQuestionTime" value="15" min="5" max="120" />
+          </div>
+          <div class="setting-item">
+            <label>Точки за въпрос</label>
+            <input type="number" id="settingPointsPerQuestion" value="100" min="10" max="1000" />
+          </div>
+          <div class="setting-item">
+            <label>Пауза между въпроси (сек)</label>
+            <input type="number" id="settingPauseBetween" value="5" min="0" max="30" />
+          </div>
+          <div class="setting-item">
+            <label>Режим на игра</label>
+            <select id="settingGameMode">
+              <option value="classic">🎯 Класически</option>
+              <option value="teams">👥 Отборен</option>
+            </select>
+          </div>
+          <div class="setting-item" style="display: flex; align-items: center; gap: 12px;">
+            <label class="toggle-switch"><input type="checkbox" id="settingTimeBonus" checked /><span class="toggle-slider"></span></label>
+            <span>Бонус за бързина</span>
+          </div>
+          <div class="setting-item" style="display: flex; align-items: center; gap: 12px;">
+            <label class="toggle-switch"><input type="checkbox" id="settingShuffleQuestions" checked /><span class="toggle-slider"></span></label>
+            <span>Разбъркване на въпроси</span>
+          </div>
+        </div>
+        <button class="btn btn-primary" id="saveSettingsBtn" style="margin-top: 20px; width: 100%;">💾 Запази настройките</button>
       </div>
     </div>
   </div>

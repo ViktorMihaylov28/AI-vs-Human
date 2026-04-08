@@ -5,51 +5,78 @@
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
   <meta name="theme-color" content="#050c1a" />
-  <meta name="description" content="AI или Човек? - Multiplayer quiz игра за разпознаване на AI и човешки код" />
+  <meta name="description" content="PGITECH - Multiplayer quiz игра" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="AI или Човек?" />
+  <meta name="apple-mobile-web-app-title" content="PGITECH" />
   
-  <title>AI или Човек?</title>
+  <title>PGITECH</title>
   
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="manifest" href="/manifest.json" />
   <link rel="apple-touch-icon" href="/favicon.svg" />
   
   <link rel="stylesheet" href="/style.css" />
+  <script src="https://openfpcdn.io/fingerprintjs/v4"></script>
   <script src="/socket.io/socket.io.js"></script>
+  <script src="/translations.js"></script>
 </head>
 <body class="player-page">
-  <button class="sound-toggle" id="soundToggle" aria-label="Включване/Изключване на звука" title="Звук">
+  <button class="settings-toggle" id="settingsToggle" aria-label="Настройки" title="Настройки">
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-      <path class="sound-waves" d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-      <path class="sound-waves" d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+      <circle cx="12" cy="12" r="3"></circle>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
     </svg>
   </button>
 
   <div class="connection-indicator" id="connectionIndicator">
     <span class="connection-dot" id="connectionDot"></span>
-    <span id="connectionText">Свързан</span>
+    <span id="connectionText" data-i18n="connected">Свързан</span>
   </div>
 
   <div class="screen join-screen" id="joinScreen">
     <div class="join-card">
-      <div class="brand">AI или Човек?</div>
-      <div class="join-subtitle">Multiplayer quiz игра за разпознаване на код</div>
+      <div class="brand" data-i18n="gameTitle">PGITECH</div>
+      <div class="join-subtitle" data-i18n="gameSubtitle">Multiplayer quiz игра</div>
 
-      <input 
-        type="text" 
-        id="nameInput" 
-        class="input" 
-        placeholder="Въведи nickname" 
-        maxlength="30" 
-        autocomplete="nickname"
-        aria-label="Nickname"
-      />
+      <div class="code-input-wrap">
+        <input 
+          type="text" 
+          id="gameCodeInput" 
+          class="input code-input" 
+          data-i18n-placeholder="enterGameCode"
+          placeholder="Код на играта" 
+          maxlength="6" 
+          autocomplete="off"
+          aria-label="Код на играта"
+        />
+      </div>
 
-      <button id="joinBtn" class="primary-btn" aria-label="Влез в играта">Влез в играта</button>
+      <div class="name-input-wrap">
+        <input 
+          type="text" 
+          id="nameInput" 
+          class="input" 
+          data-i18n-placeholder="enterNickname"
+          placeholder="Въведи nickname" 
+          maxlength="30" 
+          autocomplete="nickname"
+          aria-label="Nickname"
+        />
+        <button id="randomNameBtn" class="random-name-btn" title="Генерирай име" aria-label="Генерирай случайно име">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+            <polyline points="7.5 4.21 12 6.81 16.5 4.21"></polyline>
+            <polyline points="7.5 19.79 7.5 14.6 3 12"></polyline>
+            <polyline points="21 12 16.5 14.6 16.5 19.79"></polyline>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+            <line x1="12" y1="22.08" x2="12" y2="12"></line>
+          </svg>
+        </button>
+      </div>
+
+      <button id="joinBtn" class="primary-btn" data-i18n="joinGame" aria-label="Влез в играта">Влез в играта</button>
       <div id="joinError" class="error-text" role="alert" aria-live="polite"></div>
     </div>
   </div>
@@ -57,56 +84,151 @@
   <div class="screen game-screen hidden" id="gameScreen">
     <header class="topbar">
       <div class="top-left">
-        <div class="player-name" id="playerName" aria-label="Име на играча">Играч</div>
-        <div class="player-score" aria-label="Точки">Точки: <span id="playerScore">0</span></div>
-        <div class="player-rank" aria-label="Място">Място: <span id="playerRank">-</span></div>
-        <div class="top-center">
-          <div class="question-count" aria-live="polite">
-            Въпрос <span id="questionNumber">0</span>/<span id="questionTotal">0</span>
+        <div class="player-info">
+          <div class="player-name" id="playerName" aria-label="Име на играча" data-i18n="player">Играч</div>
+          <div class="streak-indicator" id="streakIndicator"></div>
+        </div>
+        <div class="player-stats">
+          <div class="stat-badge">
+            <span class="stat-icon">⭐</span>
+            <span id="playerScore">0</span>
           </div>
+          <div class="stat-badge rank-badge">
+            <span class="stat-icon">🏆</span>
+            <span id="playerRank">-</span>
+          </div>
+        </div>
+      </div>
+      <div class="top-center">
+        <div class="question-count" aria-live="polite">
+          <span class="q-label" data-i18n="question">Въпрос</span>
+          <span class="q-num" id="questionNumber">0</span>
+          <span class="q-sep">/</span>
+          <span class="q-total" id="questionTotal">0</span>
+        </div>
+      </div>
+      <div class="top-right">
+        <div class="timer-circle" id="timerCircle" role="timer" aria-live="off" aria-label="Оставащо време" style="display: grid;">
+          <div class="timer-progress" id="timerProgress"></div>
+          <span id="timerValue">15</span>
         </div>
       </div>
     </header>
 
     <main class="game-main">
       <section class="images-wrap" id="imagesWrap">
-        <div class="image-card large-code-card">
-          <div class="image-title">
-            <span id="leftCodeTitle">Ляв код</span>
+        <div id="codePanels" class="code-panels-container" style="display: grid;">
+          <div class="image-card large-code-card" style="display: block;">
+            <div class="image-title">
+              <span id="leftCodeTitle" data-i18n="leftCode">Ляв код</span>
+            </div>
+            <div id="leftCode" class="code-block" role="img" aria-label="Ляв код за анализ" tabindex="0" style="min-height: 300px; display: block;"></div>
           </div>
-          <div id="leftCode" class="code-block" role="img" aria-label="Ляв код за анализ" tabindex="0"></div>
+
+          <div class="image-card large-code-card" style="display: block;">
+            <div class="image-title">
+              <span id="rightCodeTitle" data-i18n="rightCode">Десен код</span>
+            </div>
+            <div id="rightCode" class="code-block" role="img" aria-label="Десен код за анализ" tabindex="0" style="min-height: 300px; display: block;"></div>
+          </div>
         </div>
 
-        <div class="player-timer-wrap">
-          <div class="top-right">
-            <div class="timer-circle" id="timerCircle" role="timer" aria-live="off" aria-label="Оставащо време">
-              <div class="timer-progress" id="timerProgress"></div>
-              <span id="timerValue">15</span>
+        <div id="questionTextPanel" class="hidden" style="display: none;">
+          <div class="image-card" style="max-width: 800px; margin: 0 auto;">
+            <div id="questionTextDisplay" class="code-block" style="font-size: 20px; padding: 30px; text-align: center;"></div>
+          </div>
+        </div>
+
+        <div id="multipleChoicePanel" class="hidden" style="display: none;">
+          <div class="image-card" style="max-width: 800px; margin: 0 auto;">
+            <h3 id="mcQuestionText" style="margin: 0 0 20px 0; font-size: 22px; text-align: center;"></h3>
+            <div id="mcOptionsContainer" class="answers-grid"></div>
+          </div>
+        </div>
+
+        <div id="trueFalsePanel" class="hidden" style="display: none;">
+          <div class="image-card" style="max-width: 600px; margin: 0 auto;">
+            <h3 id="tfQuestionText" style="margin: 0 0 30px 0; font-size: 22px; text-align: center;"></h3>
+            <div class="answers-grid" style="grid-template-columns: 1fr 1fr;">
+              <button id="tfTrueBtn" class="answer-btn green" style="font-size: 24px; padding: 30px;">Вярно</button>
+              <button id="tfFalseBtn" class="answer-btn red" style="font-size: 24px; padding: 30px;">Не е вярно</button>
             </div>
           </div>
         </div>
 
-        <div class="image-card large-code-card">
-          <div class="image-title">
-            <span id="rightCodeTitle">Десен код</span>
+        <div id="typeAnswerPanel" class="hidden" style="display: none;">
+          <div class="image-card" style="max-width: 600px; margin: 0 auto;">
+            <h3 id="taQuestionText" style="margin: 0 0 20px 0; font-size: 22px; text-align: center;"></h3>
+            <input type="text" id="typeAnswerInput" class="form-input" placeholder="Вашият отговор..." style="font-size: 20px; padding: 16px; margin-bottom: 16px;" />
+            <button id="submitTypeAnswerBtn" class="primary-btn" style="font-size: 18px; padding: 14px 32px; width: 100%;">Изпрати отговор</button>
           </div>
-          <div id="rightCode" class="code-block" role="img" aria-label="Десен код за анализ" tabindex="0"></div>
+        </div>
+
+        <div id="sliderPanel" class="hidden" style="display: none;">
+          <div class="image-card" style="max-width: 600px; margin: 0 auto;">
+            <h3 id="sliderQuestionText" style="margin: 0 0 20px 0; font-size: 22px; text-align: center;"></h3>
+            <div style="text-align: center; margin-bottom: 20px;">
+              <span id="sliderValueDisplay" style="font-size: 48px; font-weight: bold; color: var(--blue);">50</span>
+            </div>
+            <input type="range" id="answerSlider" class="slider" min="0" max="100" value="50" style="width: 100%; margin-bottom: 20px;" />
+            <button id="submitSliderBtn" class="primary-btn" style="font-size: 18px; padding: 14px 32px; width: 100%;">Потвърди</button>
+          </div>
+        </div>
+
+        <div id="fillBlankPanel" class="hidden" style="display: none;">
+          <div class="image-card" style="max-width: 800px; margin: 0 auto;">
+            <div id="fillBlankText" class="code-block" style="font-size: 20px; padding: 30px; text-align: center;"></div>
+            <div style="padding: 20px;">
+              <div id="fillBlankInputs" class="fill-blank-inputs"></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="matchingPanel" class="hidden" style="display: none;">
+          <div class="image-card" style="max-width: 800px; margin: 0 auto;">
+            <h3 id="matchingQuestionText" style="margin: 0 0 20px 0; font-size: 22px; text-align: center;"></h3>
+            <div id="matchingContainer" class="matching-container"></div>
+          </div>
+        </div>
+
+        <div id="numericPanel" class="hidden" style="display: none;">
+          <div class="image-card" style="max-width: 600px; margin: 0 auto;">
+            <h3 id="numericQuestionText" style="margin: 0 0 20px 0; font-size: 22px; text-align: center;"></h3>
+            <input type="number" id="numericAnswerInput" class="form-input" style="font-size: 24px; padding: 16px; text-align: center;" />
+            <button id="submitNumericBtn" class="primary-btn" style="margin-top: 16px; width: 100%;">Потвърди</button>
+          </div>
+        </div>
+
+        <div id="hotspotPanel" class="hidden" style="display: none;">
+          <div class="image-card" style="max-width: 800px; margin: 0 auto;">
+            <h3 id="hotspotQuestionText" style="margin: 0 0 20px 0; font-size: 22px; text-align: center;"></h3>
+            <div id="hotspotImageContainer" class="hotspot-container">
+              <img id="hotspotImage" src="" alt="Hotspot image" style="max-width: 100%;" />
+            </div>
+          </div>
+        </div>
+
+        <div id="dragdropPanel" class="hidden" style="display: none;">
+          <div class="image-card" style="max-width: 800px; margin: 0 auto;">
+            <h3 id="dragdropQuestionText" style="margin: 0 0 20px 0; font-size: 22px; text-align: center;"></h3>
+            <div id="dragdropContainer" class="dragdrop-container"></div>
+          </div>
         </div>
       </section>
 
       <section class="answers-grid" id="answersGrid" aria-label="Отговори">
-        <button class="answer-btn red" data-choice="0" aria-label="Отговор 1">Лявата е от човек, дясната е ИИ</button>
-        <button class="answer-btn blue" data-choice="1" aria-label="Отговор 2">Дясната е от човек, лявата е ИИ</button>
-        <button class="answer-btn yellow" data-choice="2" aria-label="Отговор 3">И двете са от човек</button>
-        <button class="answer-btn green" data-choice="3" aria-label="Отговор 4">И двете са от ИИ</button>
+        <button class="answer-btn red" data-choice="0" data-i18n="answer0" aria-label="Отговор 1">Лявата е от човек, дясната е ИИ</button>
+        <button class="answer-btn blue" data-choice="1" data-i18n="answer1" aria-label="Отговор 2">Дясната е от човек, лявата е ИИ</button>
+        <button class="answer-btn yellow" data-choice="2" data-i18n="answer2" aria-label="Отговор 3">И двете са от човек</button>
+        <button class="answer-btn green" data-choice="3" data-i18n="answer3" aria-label="Отговор 4">И двете са от ИИ</button>
       </section>
 
-      <section class="status-box" id="statusBox" role="status" aria-live="polite">Изчакай старт...</section>
+      <section class="status-box" id="statusBox" role="status" aria-live="polite" data-i18n="waitingHost">Изчакай старт...</section>
     </main>
 
     <aside class="mobile-leaderboard" aria-label="Класиране">
       <h3>
-        Класиране
+        <span data-i18n="leaderboard">Класиране</span>
         <span class="your-rank-indicator" id="yourRankIndicator"></span>
       </h3>
       <div id="leaderboardMini" role="list" aria-label="Топ играчи"></div>
@@ -116,21 +238,52 @@
   <div class="screen podium-screen hidden" id="podiumScreen">
     <div class="confetti-container" id="confettiContainer"></div>
     <div class="podium-card">
-      <h1>Крайно класиране</h1>
-      <p class="final-score">Твоите точки: <span id="finalMyScore">0</span></p>
+      <h1 data-i18n="finalRanking">Крайно класиране</h1>
+      <p class="final-score"><span data-i18n="yourPoints">Твоите точки</span><span>: </span><span id="finalMyScore">0</span></p>
       <div class="podium-grid" id="podiumGrid" role="list" aria-label="Подиум">
       </div>
 
-      <button class="play-again-btn" id="playAgainBtn" aria-label="Играй отново">Играй отново</button>
+      <button class="play-again-btn" id="backToLobbyBtn" data-i18n="backToLobby" aria-label="Към лобито">Към лобито</button>
 
       <div class="full-ranking">
-        <h3>Пълно класиране</h3>
+        <h3 data-i18n="fullRanking">Пълно класиране</h3>
         <div id="finalLeaderboard" role="list" aria-label="Пълно класиране"></div>
       </div>
     </div>
   </div>
 
   <div class="toast-container" id="toastContainer" role="alert" aria-live="assertive" aria-atomic="true"></div>
+
+  <div class="settings-modal hidden" id="settingsModal">
+    <div class="settings-content">
+      <div class="settings-header">
+        <h2 data-i18n="settings">Настройки</h2>
+        <button class="settings-close" id="settingsClose" aria-label="Затвори">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      
+      <div class="settings-section">
+        <label data-i18n="language">Език</label>
+        <select id="languageSelect" class="settings-select">
+          <option value="bg">Български</option>
+          <option value="en">English</option>
+          <option value="ru">Русский</option>
+        </select>
+      </div>
+      
+      <div class="settings-section">
+        <label data-i18n="sound">Звук</label>
+        <button class="toggle-btn" id="soundToggleBtn">
+          <span id="soundStatus" data-i18n="soundOn">Включен</span>
+          <span class="toggle-track"><span class="toggle-thumb"></span></span>
+        </button>
+      </div>
+    </div>
+  </div>
 
   <div class="waiting-overlay hidden" id="waitingOverlay">
     <div class="waiting-message">
@@ -139,7 +292,28 @@
     </div>
   </div>
 
+  <div class="pause-overlay hidden" id="pauseOverlay">
+    <div class="pause-content">
+      <div class="pause-countdown" id="pauseCountdown">5</div>
+      <div class="pause-title" data-i18n="nextQuestionIn">Следващ въпрос след</div>
+      <div class="pause-leaderboard" id="pauseLeaderboard"></div>
+      <div class="pause-answer-reveal hidden" id="pauseAnswerReveal">
+        <div class="reveal-label" data-i18n="correctAnswer">Верен отговор</div>
+        <div class="reveal-answer" id="revealAnswerText"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="proctoringWarning" class="proctoring-warning hidden">
+    <div class="warning-content">
+      <h3>⚠️ ВНИМАНИЕ</h3>
+      <p id="warningMessage"></p>
+    </div>
+  </div>
+
   <script src="/notifications.js"></script>
+  <script src="/profanity.js"></script>
+  <script src="/music.js"></script>
   <script src="/sounds.js"></script>
   <script src="/client.js"></script>
 </body>

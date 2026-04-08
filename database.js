@@ -63,15 +63,18 @@ class GameDatabase {
 
       CREATE TABLE IF NOT EXISTS questions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        left_code TEXT NOT NULL,
-        right_code TEXT NOT NULL,
-        left_title TEXT NOT NULL,
-        right_title TEXT NOT NULL,
-        button0_text TEXT NOT NULL,
-        button1_text TEXT NOT NULL,
-        button2_text TEXT NOT NULL,
-        button3_text TEXT NOT NULL,
-        correct_choice INTEGER NOT NULL CHECK(correct_choice IN (0,1,2,3)),
+        question_type TEXT DEFAULT 'code',
+        question_text TEXT,
+        left_code TEXT,
+        right_code TEXT,
+        left_title TEXT,
+        right_title TEXT,
+        button0_text TEXT,
+        button1_text TEXT,
+        button2_text TEXT,
+        button3_text TEXT,
+        correct_choice INTEGER,
+        question_options TEXT,
         created_by INTEGER,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         is_active INTEGER DEFAULT 1,
@@ -127,6 +130,17 @@ class GameDatabase {
         FOREIGN KEY (target_user_id) REFERENCES users(id)
       );
 
+      CREATE TABLE IF NOT EXISTS proctoring_events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        session_id TEXT NOT NULL,
+        user_id INTEGER NOT NULL,
+        event_type TEXT NOT NULL,
+        event_data TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (session_id) REFERENCES game_sessions(id),
+        FOREIGN KEY (user_id) REFERENCES users(id)
+      );
+
       CREATE TABLE IF NOT EXISTS blocked_ips (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         ip_address TEXT UNIQUE NOT NULL,
@@ -174,6 +188,10 @@ class GameDatabase {
       { table: 'questions', col: 'difficulty', sql: 'ALTER TABLE questions ADD COLUMN difficulty INTEGER DEFAULT 1' },
       { table: 'questions', col: 'times_asked', sql: 'ALTER TABLE questions ADD COLUMN times_asked INTEGER DEFAULT 0' },
       { table: 'questions', col: 'times_answered_correctly', sql: 'ALTER TABLE questions ADD COLUMN times_answered_correctly INTEGER DEFAULT 0' },
+      { table: 'questions', col: 'points', sql: 'ALTER TABLE questions ADD COLUMN points INTEGER DEFAULT 100' },
+      { table: 'questions', col: 'question_type', sql: 'ALTER TABLE questions ADD COLUMN question_type TEXT DEFAULT "code"' },
+      { table: 'questions', col: 'question_text', sql: 'ALTER TABLE questions ADD COLUMN question_text TEXT' },
+      { table: 'questions', col: 'question_options', sql: 'ALTER TABLE questions ADD COLUMN question_options TEXT' },
       { table: 'player_stats', col: 'current_streak', sql: 'ALTER TABLE player_stats ADD COLUMN current_streak INTEGER DEFAULT 0' },
       { table: 'player_stats', col: 'best_streak', sql: 'ALTER TABLE player_stats ADD COLUMN best_streak INTEGER DEFAULT 0' },
       { table: 'audit_log', col: 'ip_address', sql: 'ALTER TABLE audit_log ADD COLUMN ip_address TEXT' }
@@ -189,6 +207,54 @@ class GameDatabase {
         }
       }
     }
+
+    this.fixQuestionsConstraints();
+  }
+
+  fixQuestionsConstraints() {
+    try {
+      const cols = this.db.prepare("PRAGMA table_info(questions)").all();
+      const hasNotNullCode = cols.some(c => c.name === 'left_code' && c.notnull === 1);
+      
+      if (hasNotNullCode) {
+        logger.info("Fixing questions table: removing NOT NULL constraints");
+        
+        this.db.exec(`
+          CREATE TABLE IF NOT EXISTS questions_new (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            question_type TEXT DEFAULT 'code',
+            question_text TEXT,
+            left_code TEXT,
+            right_code TEXT,
+            left_title TEXT,
+            right_title TEXT,
+            button0_text TEXT,
+            button1_text TEXT,
+            button2_text TEXT,
+            button3_text TEXT,
+            correct_choice INTEGER,
+            question_options TEXT,
+            created_by INTEGER,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            is_active INTEGER DEFAULT 1,
+            difficulty INTEGER DEFAULT 1,
+            times_asked INTEGER DEFAULT 0,
+            times_answered_correctly INTEGER DEFAULT 0,
+            FOREIGN KEY (created_by) REFERENCES users(id)
+          );
+          
+          INSERT INTO questions_new SELECT * FROM questions;
+          
+          DROP TABLE questions;
+          
+          ALTER TABLE questions_new RENAME TO questions;
+        `);
+        
+        logger.info("Questions table constraints fixed successfully");
+      }
+    } catch (error) {
+      logger.info(`Fix questions table error (may be already fixed): ${error.message}`);
+    }
   }
 
   createUser(username, passwordHash, role, displayName) {
@@ -202,7 +268,16 @@ class GameDatabase {
       this.db.prepare(`INSERT INTO player_stats (user_id) VALUES (?)`).run(result.lastInsertRowid);
     }
     
-    return result.lastInsertRowid;
+    return { lastInsertRowid: result.lastInsertRowid, id: result.lastInsertRowid };
+  }
+
+  createUser(data) {
+    const stmt = this.db.prepare(`
+      INSERT INTO users (username, password_hash, role, display_name)
+      VALUES (?, ?, ?, ?)
+    `);
+    const result = stmt.run(data.username, data.passwordHash, data.role, data.displayName);
+    return { lastInsertRowid: result.lastInsertRowid, id: result.lastInsertRowid };
   }
 
   getUserByUsername(username) {
@@ -236,8 +311,15 @@ class GameDatabase {
     return new Date(user.locked_until) > new Date();
   }
 
-  getAllQuestions(activeOnly = true) {
-    const query = activeOnly 
+  getAllQuestions(activeOnly = true, userId = null) {
+    let query;
+    if (userId) {
+      query = activeOnly 
+        ? "SELECT * FROM questions WHERE is_active = 1 AND created_by = ? ORDER BY id"
+        : "SELECT * FROM questions WHERE created_by = ? ORDER BY id";
+      return this.db.prepare(query).all(userId);
+    }
+    query = activeOnly 
       ? "SELECT * FROM questions WHERE is_active = 1 ORDER BY id"
       : "SELECT * FROM questions ORDER BY id";
     return this.db.prepare(query).all();
@@ -249,14 +331,27 @@ class GameDatabase {
 
   createQuestion(data) {
     const stmt = this.db.prepare(`
-      INSERT INTO questions (left_code, right_code, left_title, right_title, 
-        button0_text, button1_text, button2_text, button3_text, correct_choice, created_by, difficulty)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO questions (question_type, question_text, left_code, right_code, left_title, right_title, 
+        button0_text, button1_text, button2_text, button3_text, correct_choice, question_options, created_by, difficulty, points)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
+    const questionOptions = data.questionOptions ? JSON.stringify(data.questionOptions) : null;
     return stmt.run(
-      data.leftCode, data.rightCode, data.leftTitle, data.rightTitle,
-      data.button0Text, data.button1Text, data.button2Text, data.button3Text,
-      data.correct, data.createdBy, data.difficulty || 1
+      data.questionType || "code",
+      data.questionText || null,
+      data.leftCode || null,
+      data.rightCode || null,
+      data.leftTitle || null,
+      data.rightTitle || null,
+      data.button0Text || null,
+      data.button1Text || null,
+      data.button2Text || null,
+      data.button3Text || null,
+      data.correct ?? null,
+      questionOptions,
+      data.createdBy,
+      data.difficulty || 1,
+      data.points || 100
     );
   }
 
@@ -264,14 +359,20 @@ class GameDatabase {
     const question = this.getQuestionById(id);
     if (!question) return null;
 
+    const questionOptions = data.questionOptions ? JSON.stringify(data.questionOptions) : data.questionOptions;
+    
     const stmt = this.db.prepare(`
       UPDATE questions SET 
+        question_type = ?, question_text = ?,
         left_code = ?, right_code = ?, left_title = ?, right_title = ?,
         button0_text = ?, button1_text = ?, button2_text = ?, button3_text = ?,
-        correct_choice = ?, difficulty = ?
+        correct_choice = ?, question_options = ?,
+        difficulty = ?, points = ?
       WHERE id = ?
     `);
     stmt.run(
+      data.questionType ?? question.question_type,
+      data.questionText ?? question.question_text,
       data.leftCode ?? question.left_code,
       data.rightCode ?? question.right_code,
       data.leftTitle ?? question.left_title,
@@ -281,7 +382,9 @@ class GameDatabase {
       data.button2Text ?? question.button2_text,
       data.button3Text ?? question.button3_text,
       data.correct ?? question.correct_choice,
+      questionOptions ?? question.question_options,
       data.difficulty ?? question.difficulty,
+      data.points ?? question.points,
       id
     );
     return true;
@@ -354,6 +457,17 @@ class GameDatabase {
       this.db.prepare("UPDATE questions SET times_answered_correctly = times_answered_correctly + 1 WHERE id = ?").run(questionId);
     }
     this.db.prepare("UPDATE questions SET times_asked = times_asked + 1 WHERE id = ?").run(questionId);
+  }
+
+  saveProctoringEvent(sessionId, userId, eventType, eventData) {
+    try {
+      this.db.prepare(`
+        INSERT INTO proctoring_events (session_id, user_id, event_type, event_data)
+        VALUES (?, ?, ?, ?)
+      `).run(sessionId, userId, eventType, eventData);
+    } catch (err) {
+      console.error("Error saving proctoring event:", err);
+    }
   }
 
   getSessionResults(sessionId) {

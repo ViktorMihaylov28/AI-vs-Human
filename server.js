@@ -167,7 +167,7 @@ const io = new Server(server, {
 
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: parseInt(process.env.RATE_LIMIT_MAX, 10) || 100,
+  max: parseInt(process.env.RATE_LIMIT_MAX, 10) || 500,
   message: { error: "Твърде много заявки. Моля, опитайте по-късно." },
   standardHeaders: true,
   legacyHeaders: false,
@@ -177,12 +177,20 @@ const apiLimiter = rateLimit({
   }
 });
 
+const adminApiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 2000,
+  message: { error: "Твърде много заявки. Моля, опитайте по-късно." },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "cdn.socket.io"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "cdn.socket.io"],
       imgSrc: ["'self'", "data:", "blob:"],
       fontSrc: ["'self'"],
       connectSrc: allowedOrigins === "*" ? ["'self'", "*"] : ["'self'", ...allowedOrigins],
@@ -238,7 +246,7 @@ app.use("/api/admin/", (req, res, next) => {
     return res.status(403).json({ error: "Достъпът е отказан" });
   }
   next();
-});
+}, adminApiLimiter);
 
 function escapeHtml(str) {
   return String(str).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
@@ -471,17 +479,48 @@ function buildQuestionPool() {
 }
 
 let currentQuestions = [];
+let customQuestionIds = null;
+
+function generateGameCode() {
+  let code = '';
+  for (let i = 0; i < 6; i++) {
+    code += Math.floor(Math.random() * 10);
+  }
+  return code;
+}
 
 const game = {
   state: "lobby",
   currentQuestionIndex: -1,
   questionEndsAt: 0,
+  pauseEndsAt: 0,
   timerInterval: null,
-  currentSessionId: null
+  pauseInterval: null,
+  currentSessionId: null,
+  gameCode: null,
+  paused: false,
+  answerCounts: [0, 0, 0, 0],
+  settings: {
+    questionsCount: 20,
+    questionTime: 15,
+    pointsPerQuestion: 100,
+    timeBonus: true,
+    shuffleQuestions: true,
+    pauseBetweenQuestions: 5,
+    gameMode: "classic"
+  },
+  gameMode: "classic",
+  teams: {
+    red: { name: "Червен отбор", score: 0, players: [] },
+    blue: { name: "Син отбор", score: 0, players: [] },
+    yellow: { name: "Жълт отбор", score: 0, players: [] },
+    green: { name: "Зелен отбор", score: 0, players: [] }
+  }
 };
 
 const playersByToken = new Map();
 const ipConnectionCounts = new Map();
+const kickedPlayers = new Map();
 const SOCKET_RATE_LIMIT = parseInt(process.env.SOCKET_RATE_LIMIT_MAX, 10) || 50;
 const SOCKET_RATE_WINDOW = 60 * 1000;
 
@@ -518,6 +557,14 @@ function answerText(code) {
   }
 }
 
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
 function playerListSorted() {
   return Array.from(playersByToken.values())
     .map((p) => ({
@@ -551,25 +598,58 @@ function publicState() {
   const q = currentQuestion();
   const stats = answeredStats();
 
+  let questionData = null;
+  if (q) {
+    questionData = {
+      id: q.id,
+      questionType: q.questionType || "code",
+      questionText: q.questionText || "",
+      leftCode: q.leftCode || "",
+      rightCode: q.rightCode || "",
+      leftTitle: q.leftTitle || "",
+      rightTitle: q.rightTitle || "",
+      buttonTexts: q.buttonTexts,
+      correctChoice: q.correct,
+      correctText: answerText(q.correct),
+      points: q.points
+    };
+    
+    if (q.questionOptions) {
+      questionData.questionOptions = q.questionOptions;
+    }
+  }
+
+  let leaderboard = playerListSorted();
+  let teamLeaderboard = null;
+  
+  if (game.gameMode === "teams") {
+    teamLeaderboard = Object.entries(game.teams)
+      .map(([id, team]) => ({
+        id,
+        name: team.name,
+        score: team.score,
+        playerCount: team.players.length
+      }))
+      .sort((a, b) => b.score - a.score);
+  }
+
   return {
     state: game.state,
     currentQuestionIndex: game.currentQuestionIndex,
     totalQuestions: currentQuestions.length,
-    question: q ? {
-      id: q.id,
-      leftCode: q.leftCode,
-      rightCode: q.rightCode,
-      leftTitle: q.leftTitle,
-      rightTitle: q.rightTitle,
-      correctChoice: q.correct,
-      correctText: answerText(q.correct)
-    } : null,
-    leaderboard: playerListSorted(),
+    question: questionData,
+    leaderboard,
+    teamLeaderboard,
     playersCount: playersByToken.size,
     answeredPlayers: stats.answered,
     totalPlayers: stats.total,
+    answerCounts: game.answerCounts,
+    paused: game.paused,
     now: Date.now(),
-    questionEndsAt: game.questionEndsAt
+    questionEndsAt: game.questionEndsAt,
+    pauseEndsAt: game.pauseEndsAt,
+    gameCode: game.gameCode,
+    gameMode: game.gameMode
   };
 }
 
@@ -581,11 +661,12 @@ function privateState(player) {
   let answeredCurrent = false;
   let revealMessage = "";
   let streak = player.streak || 0;
+  let kickedFromCurrentQuestion = false;
 
   if (q && player.answers[q.id]) {
     answeredCurrent = true;
     const ans = player.answers[q.id];
-    if (game.state === "reveal" || game.state === "finished") {
+    if (game.state === "reveal" || game.state === "pause" || game.state === "finished") {
       if (ans.choice === null) {
         revealMessage = "Няма изпратен отговор";
       } else if (ans.correct) {
@@ -596,12 +677,18 @@ function privateState(player) {
     }
   }
 
+  if (q && player.kickedFromQuestionId === q.id) {
+    kickedFromCurrentQuestion = true;
+  }
+
   return {
     score: player.score,
     rank: myRank,
     answeredCurrent,
     revealMessage,
-    streak
+    streak,
+    kickedFromCurrentQuestion,
+    teamId: player.teamId || null
   };
 }
 
@@ -640,19 +727,188 @@ function clearTimers() {
     clearInterval(game.timerInterval);
     game.timerInterval = null;
   }
+  if (game.pauseInterval) {
+    clearInterval(game.pauseInterval);
+    game.pauseInterval = null;
+  }
 }
 
 function scoreAnswer(question, choice, msLeft) {
-  const correct = choice === question.correct;
-  if (!correct) return { correct: false, points: 0, timeBonus: 0 };
-
-  const maxMs = QUESTION_TIME_SECONDS * 1000;
+  const type = question.questionType || "code";
+  const basePoints = question.points || game.settings.pointsPerQuestion;
+  const maxMs = game.settings.questionTime * 1000;
   const speedRatio = Math.max(0, Math.min(1, msLeft / maxMs));
-  const basePoints = 500;
-  const timeBonus = Math.round(500 * speedRatio);
-  const points = basePoints + timeBonus;
+  
+  let correct = false;
+  let points = 0;
+  let timeBonus = 0;
+  
+  switch(type) {
+    case "code":
+    case "multiple_choice":
+      correct = choice === question.correct;
+      if (correct) {
+        if (game.settings.timeBonus) {
+          timeBonus = Math.round(basePoints * speedRatio);
+        }
+        points = basePoints + timeBonus;
+      }
+      break;
+      
+    case "true_false":
+      const correctBool = question.correct === true || question.correct === "true" || question.correct === 1;
+      const choiceBool = choice === true || choice === "true" || choice === 1;
+      correct = correctBool === choiceBool;
+      if (correct) {
+        if (game.settings.timeBonus) {
+          timeBonus = Math.round(basePoints * speedRatio);
+        }
+        points = basePoints + timeBonus;
+      }
+      break;
+      
+    case "type_answer":
+      const answers = question.questionOptions?.answers || [];
+      const caseInsensitive = question.questionOptions?.caseInsensitive !== false;
+      const playerAnswer = caseInsensitive ? String(choice).toLowerCase().trim() : String(choice).trim();
+      correct = answers.some(a => {
+        const ans = caseInsensitive ? a.toLowerCase().trim() : a.trim();
+        return ans === playerAnswer;
+      });
+      if (correct) {
+        if (game.settings.timeBonus) {
+          timeBonus = Math.round(basePoints * speedRatio);
+        }
+        points = basePoints + timeBonus;
+      }
+      break;
+      
+    case "slider":
+      const opts = question.questionOptions || {};
+      const minVal = opts.min || 0;
+      const maxVal = opts.max || 100;
+      const correctVal = opts.correct || 50;
+      const playerVal = parseFloat(choice);
+      const range = maxVal - minVal;
+      const diff = Math.abs(playerVal - correctVal);
+      const accuracy = 1 - (diff / range);
+      correct = diff === 0;
+      points = Math.round(basePoints * Math.max(0, accuracy));
+      if (game.settings.timeBonus) {
+        timeBonus = Math.round(points * speedRatio * 0.5);
+      }
+      points = points + timeBonus;
+      break;
+      
+    case "fill_blank":
+      const fbOpts = question.questionOptions || {};
+      const fbAnswers = fbOpts.answers || [question.correct];
+      const fbCaseInsensitive = fbOpts.caseInsensitive !== false;
+      const fbPlayerAnswer = String(choice || "").trim();
+      
+      const fbIsCorrect = fbAnswers.some(ans => {
+        const correct = String(ans).trim();
+        if (fbCaseInsensitive) {
+          return correct.toLowerCase() === fbPlayerAnswer.toLowerCase();
+        }
+        return correct === fbPlayerAnswer;
+      });
+      
+      correct = fbIsCorrect;
+      if (correct) {
+        points = basePoints;
+        if (game.settings.timeBonus) {
+          timeBonus = Math.round(basePoints * speedRatio);
+        }
+        points = basePoints + timeBonus;
+      }
+      break;
+      
+    case "matching":
+      const correctMatches = question.questionOptions?.matches || [];
+      const playerMatches = choice || {};
+      let matchCorrect = 0;
+      for (const cm of correctMatches) {
+        if (playerMatches[cm.left] === cm.right) {
+          matchCorrect++;
+        }
+      }
+      correct = matchCorrect === correctMatches.length;
+      const matchAccuracy = correctMatches.length > 0 ? matchCorrect / correctMatches.length : 0;
+      points = Math.round(basePoints * matchAccuracy);
+      if (correct && game.settings.timeBonus) {
+        timeBonus = Math.round(points * speedRatio * 0.5);
+        points = points + timeBonus;
+      }
+      break;
+      
+    case "numeric":
+      const numOpts = question.questionOptions || {};
+      const numCorrect = parseFloat(numOpts.correct || 0);
+      const numTolerance = parseFloat(numOpts.tolerance || 0);
+      const numPlayer = parseFloat(choice);
+      const numDiff = Math.abs(numPlayer - numCorrect);
+      correct = numDiff <= numTolerance;
+      if (correct) {
+        const numAccuracy = numTolerance > 0 ? 1 - (numDiff / numTolerance) : 1;
+        points = Math.round(basePoints * Math.max(0, numAccuracy));
+        if (game.settings.timeBonus) {
+          timeBonus = Math.round(points * speedRatio * 0.5);
+          points = points + timeBonus;
+        }
+      }
+      break;
+      
+    case "hotspot":
+      const hsOpts = question.questionOptions || {};
+      const hsZones = hsOpts.zones || [];
+      const playerX = parseFloat(choice?.x || 0);
+      const playerY = parseFloat(choice?.y || 0);
+      correct = hsZones.some(zone => {
+        const zx = parseFloat(zone.x || 0);
+        const zy = parseFloat(zone.y || 0);
+        const zw = parseFloat(zone.width || 50);
+        const zh = parseFloat(zone.height || 50);
+        return playerX >= zx && playerX <= zx + zw && playerY >= zy && playerY <= zy + zh;
+      });
+      if (correct) {
+        points = basePoints;
+        if (game.settings.timeBonus) {
+          timeBonus = Math.round(basePoints * speedRatio);
+          points = points + timeBonus;
+        }
+      }
+      break;
+      
+    case "dragdrop":
+      const ddCorrect = question.questionOptions?.correctOrder || [];
+      const ddPlayer = Array.isArray(choice) ? choice : [];
+      let ddCorrectCount = 0;
+      for (let i = 0; i < Math.min(ddCorrect.length, ddPlayer.length); i++) {
+        if (ddCorrect[i] === ddPlayer[i]) {
+          ddCorrectCount++;
+        }
+      }
+      correct = ddCorrectCount === ddCorrect.length && ddPlayer.length === ddCorrect.length;
+      const ddAccuracy = ddCorrect.length > 0 ? ddCorrectCount / ddCorrect.length : 0;
+      points = Math.round(basePoints * ddAccuracy);
+      if (correct && game.settings.timeBonus) {
+        timeBonus = Math.round(points * speedRatio * 0.5);
+        points = points + timeBonus;
+      }
+      break;
+      
+    default:
+      correct = choice === question.correct;
+      if (correct) {
+        if (game.settings.timeBonus) {
+          timeBonus = Math.round(basePoints * speedRatio);
+        }
+        points = basePoints + timeBonus;
+      }
+  }
 
-  return { correct: true, points, timeBonus };
+  return { correct, points, timeBonus };
 }
 
 const MAX_PLAYERS_PER_IP = 3;
@@ -699,9 +955,7 @@ const sessionStats = {
 
 function moveToReveal() {
   clearTimers();
-  game.state = "reveal";
-  game.questionEndsAt = 0;
-
+  
   const q = currentQuestion();
   if (q) {
     for (const player of playersByToken.values()) {
@@ -710,11 +964,44 @@ function moveToReveal() {
       }
     }
   }
+  
+  game.state = "pause";
+  game.questionEndsAt = 0;
+  game.pauseEndsAt = Date.now() + (game.settings.pauseBetweenQuestions || 5) * 1000;
+  
+  emitAll();
+  startPauseTimer();
+}
+
+function startPauseTimer() {
+  if (game.pauseInterval) clearInterval(game.pauseInterval);
+  game.pauseInterval = setInterval(() => {
+    if (game.paused) return;
+    const remaining = game.pauseEndsAt - Date.now();
+    io.emit("game:pauseTimer", { remainingMs: Math.max(0, remaining), endsAt: game.pauseEndsAt });
+    if (remaining <= 0) {
+      clearInterval(game.pauseInterval);
+      game.pauseInterval = null;
+      moveToRevealComplete();
+    }
+  }, 100);
+}
+
+function moveToRevealComplete() {
+  clearTimers();
+  game.state = "reveal";
+  game.pauseEndsAt = 0;
   emitAll();
 }
 
 function startQuestion(index) {
   clearTimers();
+  game.answerCounts = [0, 0, 0, 0];
+
+  for (const player of playersByToken.values()) {
+    player.kickedFromQuestionId = null;
+    player.kickedFromQuestionIndex = null;
+  }
 
   if (index >= currentQuestions.length) {
     game.state = "finished";
@@ -729,11 +1016,16 @@ function startQuestion(index) {
 
   game.state = "question";
   game.currentQuestionIndex = index;
-  game.questionEndsAt = Date.now() + QUESTION_TIME_SECONDS * 1000;
+  game.questionEndsAt = Date.now() + game.settings.questionTime * 1000;
 
   emitAll();
+  startTimerInterval();
+}
 
+function startTimerInterval() {
+  if (game.timerInterval) clearInterval(game.timerInterval);
   game.timerInterval = setInterval(() => {
+    if (game.paused) return;
     const remaining = game.questionEndsAt - Date.now();
     io.emit("game:timer", { remainingMs: Math.max(0, remaining), endsAt: game.questionEndsAt });
     if (remaining <= 0) {
@@ -742,14 +1034,88 @@ function startQuestion(index) {
   }, 1000);
 }
 
-function startGame() {
+function createGame() {
+  game.gameCode = generateGameCode();
+  game.state = "lobby";
+  game.currentQuestionIndex = -1;
+  game.questionEndsAt = 0;
+  game.currentSessionId = null;
+  playersByToken.clear();
+  kickedPlayers.clear();
+  emitAll();
+  logger.info(`Game created with code: ${game.gameCode}`);
+}
+
+function mapQuestion(q) {
+  const question = {
+    id: String(q.id),
+    questionType: q.question_type || "code",
+    questionText: q.question_text || "",
+    points: q.points || 100,
+    correct: q.correct_choice,
+    leftCode: q.left_code || "",
+    rightCode: q.right_code || "",
+    leftTitle: q.left_title || "",
+    rightTitle: q.right_title || "",
+    buttonTexts: [q.button0_text, q.button1_text, q.button2_text, q.button3_text]
+  };
+  
+  if (q.question_options) {
+    try {
+      question.questionOptions = typeof q.question_options === 'string' 
+        ? JSON.parse(q.question_options) 
+        : q.question_options;
+    } catch (e) {
+      question.questionOptions = {};
+    }
+  }
+  
+  return question;
+}
+
+function startGame(teacherUserId) {
+  if (!game.gameCode) {
+    game.gameCode = generateGameCode();
+  }
+
   clearTimers();
 
-  currentQuestions = buildQuestionPool();
-  logger.info(`Loaded ${currentQuestions.length} questions for new game`);
+  let teacherQuestions = db.getAllQuestions(true, teacherUserId);
+  
+  if (teacherQuestions.length === 0) {
+    logger.error("No questions found for teacher");
+    return;
+  }
+
+  if (customQuestionIds && customQuestionIds.length > 0) {
+    const selectedQs = teacherQuestions
+      .filter(q => customQuestionIds.includes(String(q.id)))
+      .map(mapQuestion);
+    
+    if (selectedQs.length > 0) {
+      currentQuestions = selectedQs;
+      logger.info(`Using custom questions: ${selectedQs.length}`);
+    } else {
+      currentQuestions = teacherQuestions.map(mapQuestion);
+    }
+    customQuestionIds = null;
+  } else {
+    currentQuestions = teacherQuestions.map(mapQuestion);
+  }
+
+  if (game.settings.shuffleQuestions) {
+    currentQuestions = shuffleArray([...currentQuestions]);
+  }
+
+  if (currentQuestions.length > game.settings.questionsCount) {
+    currentQuestions = currentQuestions.slice(0, game.settings.questionsCount);
+  }
+
+  logger.info(`Loaded ${currentQuestions.length} questions for game (settings: ${JSON.stringify(game.settings)})`);
   game.currentSessionId = crypto.randomUUID();
-  game.state = "question";
-  game.currentQuestionIndex = 0;
+  logger.info(`Starting game with code: ${game.gameCode}`);
+  game.state = "ready";
+  game.currentQuestionIndex = -1;
   game.questionEndsAt = 0;
 
   db.createGameSession(game.currentSessionId, currentQuestions.length);
@@ -761,12 +1127,20 @@ function startGame() {
     p.streak = 0;
   }
 
-  startQuestion(0);
+  emitAll();
 }
 
 function nextOrSkip() {
+  if (game.state === "ready") {
+    startQuestion(0);
+    return;
+  }
   if (game.state === "question") {
     moveToReveal();
+    return;
+  }
+  if (game.state === "pause") {
+    moveToRevealComplete();
     return;
   }
   if (game.state === "reveal") {
@@ -782,11 +1156,17 @@ function resetGame() {
   game.currentQuestionIndex = -1;
   game.questionEndsAt = 0;
   game.currentSessionId = null;
+  game.gameCode = null;
 
   for (const p of playersByToken.values()) {
     p.score = 0;
     p.answers = {};
     p.streak = 0;
+  }
+  
+  for (const team of Object.values(game.teams)) {
+    team.score = 0;
+    team.players = [];
   }
 
   emitAll();
@@ -798,24 +1178,37 @@ function forceEndGame() {
   if (game.currentSessionId) {
     db.endGameSession(game.currentSessionId, "finished");
   }
+  game.gameCode = null;
   emitAll();
 }
 
-function kickPlayer(token) {
+function kickPlayer(token, reason) {
   if (!token) return false;
   const playerToken = String(token);
   const player = playersByToken.get(playerToken);
 
   if (!player) return false;
 
+  const currentQ = currentQuestion();
+  kickedPlayers.set(playerToken, {
+    kickedAt: Date.now(),
+    kickedFromQuestionId: game.state === "question" && currentQ ? currentQ.id : null,
+    kickedFromQuestionIndex: game.state === "question" ? game.currentQuestionIndex : null
+  });
+
   if (player.socketId) {
     const kickedSocket = io.sockets.sockets.get(player.socketId);
     if (kickedSocket) {
-      kickedSocket.emit("player:kicked", "Премахнат си от играта от администратор.");
+      kickedSocket.emit("player:kicked", reason || "Премахнат си от играта.");
     }
+  }
+  
+  if (player.teamId && game.teams[player.teamId]) {
+    game.teams[player.teamId].players = game.teams[player.teamId].players.filter(t => t !== playerToken);
   }
 
   playersByToken.delete(playerToken);
+  logger.info(`Player ${player.name} kicked: ${reason || 'No reason'}`);
   emitAll();
   return true;
 }
@@ -903,20 +1296,65 @@ app.post("/api/admin/login", asyncHandler(async (req, res) => {
   res.json({ token: newToken, username: user.username, role: user.role });
 }));
 
+app.post("/api/admin/register", asyncHandler(async (req, res) => {
+  const { username, password, displayName } = req.body;
+
+  if (!username || !password) {
+    return res.status(400).json({ error: "Липсва потребителско име или парола" });
+  }
+
+  if (username.length < 3 || username.length > 30) {
+    return res.status(400).json({ error: "Потребителското име трябва да е между 3 и 30 символа" });
+  }
+
+  if (password.length < 6) {
+    return res.status(400).json({ error: "Паролата трябва да е поне 6 символа" });
+  }
+
+  if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+    return res.status(400).json({ error: "Потребителското име може да съдържа само букви, цифри и _" });
+  }
+
+  const existingUser = db.getUserByUsername(username);
+  if (existingUser) {
+    return res.status(409).json({ error: "Потребителското име е заето" });
+  }
+
+  const passwordHash = await bcrypt.hash(password, 10);
+  const result = db.createUser({
+    username,
+    passwordHash,
+    displayName: displayName || username,
+    role: "teacher"
+  });
+
+  const token = jwt.sign({ userId: result.id, username, role: "teacher" }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+
+  db.logAudit(result.id, "REGISTER", null, null, req.ip);
+  logAccess(req.ip, username, "New teacher registered");
+
+  res.status(201).json({ token, username, role: "teacher" });
+}));
+
 app.get("/api/admin/verify", authMiddleware, (req, res) => {
   res.json({ username: req.adminUser.username, role: req.adminUser.role });
 });
 
 app.get("/api/admin/questions", authMiddleware, (req, res) => {
-  const questions = db.getAllQuestions();
+  const userId = req.adminUser.userId;
+  const questions = db.getAllQuestions(true, userId);
   res.json(questions.map(q => ({
     id: String(q.id),
-    leftCode: q.left_code,
-    rightCode: q.right_code,
-    leftTitle: q.left_title,
-    rightTitle: q.right_title,
-    buttonTexts: [q.button0_text, q.button1_text, q.button2_text, q.button3_text],
+    questionType: q.question_type || "code",
+    questionText: q.question_text || "",
+    leftCode: q.left_code || "",
+    rightCode: q.right_code || "",
+    leftTitle: q.left_title || "",
+    rightTitle: q.right_title || "",
+    buttonTexts: [q.button0_text || "", q.button1_text || "", q.button2_text || "", q.button3_text || ""],
     correct: q.correct_choice,
+    points: q.points || 100,
+    questionOptions: q.question_options || null,
     createdAt: q.created_at,
     difficulty: q.difficulty,
     timesAsked: q.times_asked,
@@ -939,21 +1377,58 @@ app.get("/api/admin/questions/search", authMiddleware, (req, res) => {
 });
 
 app.post("/api/admin/questions", authMiddleware, (req, res) => {
-  const { leftCode, rightCode, leftTitle, rightTitle, buttonTexts, correct, difficulty } = req.body;
+  const { leftCode, rightCode, leftTitle, rightTitle, buttonTexts, correct, difficulty, points, questionType, questionText, questionOptions } = req.body;
 
-  if (!leftCode || !rightCode || typeof correct !== "number") {
-    return res.status(400).json({ error: "Липсват задължителни полета" });
+  const type = questionType || "code";
+  
+  let isValid = false;
+  let errorMsg = "Липсват задължителни полета";
+  
+  switch(type) {
+    case "code":
+      isValid = leftCode && rightCode && typeof correct === "number";
+      errorMsg = "Кодовете и правилният отговор са задължителни";
+      break;
+    case "multiple_choice":
+      isValid = questionText && questionOptions?.options?.length >= 2;
+      errorMsg = "Текстът и поне 2 отговора са задължителни";
+      break;
+    case "true_false":
+      isValid = questionText && (correct === true || correct === false || correct === "true" || correct === "false" || correct === 0 || correct === 1);
+      errorMsg = "Текстът и правилният отговор са задължителни";
+      break;
+    case "type_answer":
+      isValid = questionText && questionOptions?.answers?.length > 0;
+      errorMsg = "Текстът и поне един приемлив отговор са задължителни";
+      break;
+    case "slider":
+      isValid = questionText && questionOptions?.correct !== undefined;
+      errorMsg = "Текстът и правилната стойност са задължителни";
+      break;
+    default:
+      isValid = false;
+  }
+  
+  if (!isValid) {
+    return res.status(400).json({ error: errorMsg });
   }
 
   const defaultButtons = ["Лявата е от човек, дясната е ИИ", "Дясната е от човек, лявата е ИИ", "И двете са от човек", "И двете са от ИИ"];
   const buttons = buttonTexts || defaultButtons;
 
   const result = db.createQuestion({
-    leftCode, rightCode,
-    leftTitle: leftTitle || "left_code.py",
-    rightTitle: rightTitle || "right_code.py",
+    questionType: type,
+    questionText: questionText || null,
+    leftCode: leftCode || null,
+    rightCode: rightCode || null,
+    leftTitle: leftTitle || null,
+    rightTitle: rightTitle || null,
     button0Text: buttons[0], button1Text: buttons[1], button2Text: buttons[2], button3Text: buttons[3],
-    correct, createdBy: req.adminUser.userId, difficulty
+    correct: correct ?? null,
+    questionOptions: questionOptions ? JSON.stringify(questionOptions) : null,
+    createdBy: req.adminUser.userId,
+    difficulty: difficulty || 1, 
+    points: points || 100
   });
 
   db.logAudit(req.adminUser.userId, "CREATE_QUESTION", null, `Created question ID: ${result.lastInsertRowid}`, req.ip);
@@ -962,12 +1437,24 @@ app.post("/api/admin/questions", authMiddleware, (req, res) => {
 
 app.put("/api/admin/questions/:id", authMiddleware, (req, res) => {
   const { id } = req.params;
-  const { leftCode, rightCode, leftTitle, rightTitle, buttonTexts, correct, difficulty } = req.body;
+  const { leftCode, rightCode, leftTitle, rightTitle, buttonTexts, correct, difficulty, points, questionType, questionText, questionOptions } = req.body;
 
   const question = db.getQuestionById(id);
   if (!question) return res.status(404).json({ error: "Въпросът не е намерен" });
 
-  db.updateQuestion(id, { leftCode, rightCode, leftTitle, rightTitle, buttonTexts, correct, difficulty });
+  db.updateQuestion(id, {
+    questionType: questionType || question.question_type,
+    questionText: questionText ?? question.question_text,
+    leftCode: leftCode ?? question.left_code,
+    rightCode: rightCode ?? question.right_code,
+    leftTitle: leftTitle ?? question.left_title,
+    rightTitle: rightTitle ?? question.right_title,
+    buttonTexts: buttonTexts ?? [question.button0_text, question.button1_text, question.button2_text, question.button3_text],
+    correct: correct ?? question.correct_choice,
+    questionOptions: questionOptions ? JSON.stringify(questionOptions) : question.question_options,
+    difficulty: difficulty ?? question.difficulty,
+    points: points ?? question.points
+  });
   db.logAudit(req.adminUser.userId, "UPDATE_QUESTION", null, `Updated question ID: ${id}`, req.ip);
 
   res.json({ success: true });
@@ -1008,14 +1495,93 @@ app.post("/api/admin/questions/import", authMiddleware, (req, res) => {
   res.json({ success: true, count });
 });
 
+app.post("/api/admin/game/create", authMiddleware, (req, res) => {
+  createGame();
+  db.logAudit(req.adminUser.userId, "CREATE_GAME", null, `Created game with code ${game.gameCode}`, req.ip);
+  res.json({ success: true, gameCode: game.gameCode });
+});
+
 app.get("/api/admin/game/state", authMiddleware, (req, res) => {
   res.json(publicState());
 });
 
+app.get("/api/admin/game/settings", authMiddleware, (req, res) => {
+  res.json(game.settings);
+});
+
+app.post("/api/admin/game/settings", authMiddleware, (req, res) => {
+  const { questionsCount, questionTime, pointsPerQuestion, timeBonus, shuffleQuestions, gameMode, pauseBetweenQuestions } = req.body;
+  
+  if (questionsCount !== undefined) game.settings.questionsCount = Math.max(1, Math.min(100, Number(questionsCount)));
+  if (questionTime !== undefined) game.settings.questionTime = Math.max(5, Math.min(60, Number(questionTime)));
+  if (pointsPerQuestion !== undefined) game.settings.pointsPerQuestion = Math.max(10, Math.min(1000, Number(pointsPerQuestion)));
+  if (timeBonus !== undefined) game.settings.timeBonus = Boolean(timeBonus);
+  if (shuffleQuestions !== undefined) game.settings.shuffleQuestions = Boolean(shuffleQuestions);
+  if (pauseBetweenQuestions !== undefined) game.settings.pauseBetweenQuestions = Math.max(0, Math.min(30, Number(pauseBetweenQuestions)));
+  if (gameMode !== undefined) {
+    game.settings.gameMode = ["classic", "teams"].includes(gameMode) ? gameMode : "classic";
+    game.gameMode = game.settings.gameMode;
+  }
+  
+  logger.info(`Game settings updated: ${JSON.stringify(game.settings)}`);
+  db.logAudit(req.adminUser.userId, "UPDATE_SETTINGS", null, `Updated: ${JSON.stringify(game.settings)}`, req.ip);
+  
+  res.json({ success: true, settings: game.settings });
+});
+
 app.post("/api/admin/game/start", authMiddleware, (req, res) => {
-  startGame();
+  const userId = req.adminUser.userId;
+  const teacherQuestions = db.getAllQuestions(true, userId);
+  
+  if (teacherQuestions.length === 0) {
+    return res.status(400).json({ error: "Нямате добавени въпроси. Моля, добавете поне един въпрос преди да стартирате играта." });
+  }
+
+  if (customQuestionIds && customQuestionIds.length > 0) {
+    const validIds = teacherQuestions.map(q => String(q.id));
+    const selectedValid = customQuestionIds.filter(id => validIds.includes(id));
+    if (selectedValid.length === 0) {
+      customQuestionIds = null;
+    }
+  }
+
+  startGame(userId);
   db.logAudit(req.adminUser.userId, "START_GAME", null, "Started new game session", req.ip);
   res.json({ success: true });
+});
+
+app.post("/api/admin/game/newGame", authMiddleware, (req, res) => {
+  for (const [token, player] of playersByToken) {
+    if (player.socketId) {
+      const socket = io.sockets.sockets.get(player.socketId);
+      if (socket) {
+        socket.emit("player:kicked", "Нова игра! Въведете новия код.");
+      }
+    }
+  }
+  playersByToken.clear();
+  kickedPlayers.clear();
+  
+  game.state = "lobby";
+  game.currentQuestionIndex = -1;
+  game.questionEndsAt = 0;
+  game.currentSessionId = null;
+  game.gameCode = generateGameCode();
+  customQuestionIds = null;
+  
+  emitAll();
+  db.logAudit(req.adminUser.userId, "NEW_GAME", null, "New game started - code changed", req.ip);
+  res.json({ success: true, gameCode: game.gameCode });
+});
+
+app.post("/api/admin/game/setQuestions", authMiddleware, (req, res) => {
+  const { questionIds } = req.body;
+  if (!Array.isArray(questionIds)) {
+    return res.status(400).json({ error: "questionIds трябва да е масив" });
+  }
+  customQuestionIds = questionIds.map(id => String(id));
+  logger.info(`Custom questions set: ${customQuestionIds.length} questions selected`);
+  res.json({ success: true, count: customQuestionIds.length });
 });
 
 app.post("/api/admin/game/next", authMiddleware, (req, res) => {
@@ -1023,10 +1589,35 @@ app.post("/api/admin/game/next", authMiddleware, (req, res) => {
   res.json({ success: true });
 });
 
+app.post("/api/admin/game/pause", authMiddleware, (req, res) => {
+  if (game.state !== "question") {
+    return res.status(400).json({ error: "Може да паузирате само по време на въпрос" });
+  }
+  game.paused = true;
+  game.questionEndsAt = 0;
+  clearInterval(game.timerInterval);
+  io.emit("game:paused", { paused: true });
+  logger.info("Game paused by admin");
+  res.json({ success: true, paused: true });
+});
+
+app.post("/api/admin/game/resume", authMiddleware, (req, res) => {
+  if (!game.paused) {
+    return res.status(400).json({ error: "Играта не е на пауза" });
+  }
+  game.paused = false;
+  const remainingMs = parseInt(req.body.remainingMs) || 10000;
+  game.questionEndsAt = Date.now() + remainingMs;
+  io.emit("game:resumed", { remainingMs, endsAt: game.questionEndsAt });
+  startTimerInterval();
+  logger.info("Game resumed by admin");
+  res.json({ success: true, paused: false });
+});
+
 app.post("/api/admin/game/reset", authMiddleware, (req, res) => {
   resetGame();
   db.logAudit(req.adminUser.userId, "RESET_GAME", null, "Reset game", req.ip);
-  res.json({ success: true });
+  res.json({ success: true, gameCode: game.gameCode });
 });
 
 app.post("/api/admin/game/end", authMiddleware, (req, res) => {
@@ -1058,6 +1649,22 @@ app.get("/api/admin/audit-log", authMiddleware, (req, res) => {
 app.get("/api/admin/game-history", authMiddleware, (req, res) => {
   const sessions = db.getRecentGameSessions(50);
   res.json(sessions);
+});
+
+app.get("/api/admin/proctoring/logs", authMiddleware, (req, res) => {
+  try {
+    const logs = db.db.prepare(`
+      SELECT pe.*, u.display_name as player_name
+      FROM proctoring_events pe
+      LEFT JOIN users u ON pe.user_id = u.id
+      ORDER BY pe.created_at DESC
+      LIMIT 200
+    `).all();
+    res.json(logs);
+  } catch (err) {
+    logger.error("Error fetching proctoring logs:", err);
+    res.status(500).json({ error: "Грешка при зареждане на логовете" });
+  }
 });
 
 app.get("/api/admin/game-history/:id", authMiddleware, (req, res) => {
@@ -1220,7 +1827,7 @@ io.on("connection", (socket) => {
   metrics.recordSocketConnection();
   logger.info(`New socket connection from ${clientIp} (Total: ${playersByToken.size + 1})`);
 
-  socket.on("player:join", ({ token, name }) => {
+  socket.on("player:join", ({ token, name, gameCode }) => {
     if (isSpam(clientIp)) {
       logger.warn(`Spam detected from IP: ${clientIp}`);
       return;
@@ -1231,15 +1838,25 @@ io.on("connection", (socket) => {
       return;
     }
 
+    if (!gameCode || String(gameCode).trim().toUpperCase() !== game.gameCode) {
+      socket.emit("player:error", "Невалиден код на играта!");
+      return;
+    }
+
     let playerToken = token && String(token).trim();
     if (!playerToken) playerToken = crypto.randomUUID();
 
     let player = playersByToken.get(playerToken);
+    const kickInfo = kickedPlayers.get(playerToken);
 
     if (!player) {
-      const cleanName = String(name || "").trim().slice(0, 30) || "Играч";
+      const cleanName = String(name || "").trim().slice(0, 20) || "Играч";
       if (!/^[\w\u0400-\u04FF\s]+$/.test(cleanName)) {
         socket.emit("player:error", "Невалидно име! Използвай само букви и цифри.");
+        return;
+      }
+      if (cleanName.length < 2) {
+        socket.emit("player:error", "Името трябва да е поне 2 символа.");
         return;
       }
 
@@ -1253,10 +1870,32 @@ io.on("connection", (socket) => {
         userId: null,
         streak: 0,
         ip: clientIp,
-        answersCount: 0
+        answersCount: 0,
+        kickedFromQuestionId: kickInfo?.kickedFromQuestionId,
+        kickedFromQuestionIndex: kickInfo?.kickedFromQuestionIndex,
+        teamId: null
       };
 
+      if (game.gameMode === "teams") {
+        const teams = ["red", "blue", "yellow", "green"];
+        let minPlayers = Infinity;
+        let selectedTeam = "red";
+        
+        for (const team of teams) {
+          const teamPlayerCount = game.teams[team].players.length;
+          if (teamPlayerCount < minPlayers) {
+            minPlayers = teamPlayerCount;
+            selectedTeam = team;
+          }
+        }
+        
+        player.teamId = selectedTeam;
+        game.teams[selectedTeam].players.push(playerToken);
+        logger.info(`Player ${player.name} assigned to team ${selectedTeam}`);
+      }
+
       playersByToken.set(playerToken, player);
+      kickedPlayers.delete(playerToken);
       logAccess(clientIp, null, `Player joined: ${player.name}`);
     } else {
       player.socketId = socket.id;
@@ -1289,6 +1928,13 @@ io.on("connection", (socket) => {
       return;
     }
 
+    const kickInfo = kickedPlayers.get(player.token);
+    if (kickInfo) {
+      player.kickedFromQuestionId = kickInfo.kickedFromQuestionId;
+      player.kickedFromQuestionIndex = kickInfo.kickedFromQuestionIndex;
+      kickedPlayers.delete(player.token);
+    }
+
     player.socketId = socket.id;
     socket.data.playerToken = player.token;
 
@@ -1301,8 +1947,6 @@ io.on("connection", (socket) => {
   socket.on("player:answer", ({ choice }) => {
     const token = socket.data.playerToken;
     if (!token) return;
-
-    if (typeof choice !== "number" || choice < 0 || choice > 3) return;
 
     const playerIp = socket.handshake.headers["x-forwarded-for"]?.split(",")[0]?.trim() 
       || socket.handshake.headers["x-real-ip"] 
@@ -1323,6 +1967,27 @@ io.on("connection", (socket) => {
     if (player.answers[q.id]) return;
 
     const msLeft = Math.max(0, game.questionEndsAt - Date.now());
+    if (msLeft <= 0) {
+      socket.emit("player:error", "Времето изтече!");
+      return;
+    }
+
+    if (player.kickedFromQuestionId === q.id) {
+      socket.emit("player:error", "Бяхте премахнат от този въпрос. Изчакайте следващия.");
+      return;
+    }
+
+    const qType = q.questionType || "code";
+    if (qType === "code" || qType === "multiple_choice") {
+      if (typeof choice !== "number" || choice < 0) return;
+    } else if (qType === "true_false") {
+      if (typeof choice !== "boolean" && choice !== "true" && choice !== "false" && choice !== 0 && choice !== 1) return;
+    } else if (qType === "type_answer") {
+      if (typeof choice !== "string" || choice.trim().length === 0) return;
+    } else if (qType === "slider") {
+      if (typeof choice !== "number" && typeof choice !== "string") return;
+    }
+
     const result = scoreAnswer(q, choice, msLeft);
 
     player.answers[q.id] = {
@@ -1333,6 +1998,10 @@ io.on("connection", (socket) => {
       timeBonus: result.timeBonus
     };
 
+    if (game.answerCounts && typeof choice === "number" && choice >= 0 && choice < game.answerCounts.length) {
+      game.answerCounts[choice]++;
+    }
+
     player.score += result.points;
     player.answersCount++;
     if (result.correct) {
@@ -1340,6 +2009,10 @@ io.on("connection", (socket) => {
       sessionStats.totalCorrect++;
     } else {
       player.streak = 0;
+    }
+    
+    if (game.gameMode === "teams" && player.teamId && result.points > 0) {
+      game.teams[player.teamId].score += result.points;
     }
 
     sessionStats.totalAnswers++;
@@ -1377,6 +2050,156 @@ io.on("connection", (socket) => {
       emitAll();
     }
   });
+
+  socket.on("player:tabSwitch", ({ count, timestamp }) => {
+    const token = socket.data.playerToken;
+    if (!token) return;
+    
+    const player = playersByToken.get(token);
+    if (!player) return;
+    
+    player.tabSwitches = (player.tabSwitches || 0) + 1;
+    
+    if (db && game.currentSessionId && player.userId) {
+      db.saveProctoringEvent(game.currentSessionId, player.userId, 'tab_switch', JSON.stringify({ count, timestamp }));
+    }
+    
+    logger.warn(`Player ${player.name} switched tab (${player.tabSwitches}/3)`);
+    
+    if (player.tabSwitches >= 3) {
+      disqualifyPlayer(token, 'Твърде много превключвания между раздели');
+    }
+  });
+
+  socket.on("player:fullscreenExit", ({ count, timestamp }) => {
+    const token = socket.data.playerToken;
+    if (!token) return;
+    
+    const player = playersByToken.get(token);
+    if (!player) return;
+    
+    player.fullscreenExits = (player.fullscreenExits || 0) + 1;
+    
+    if (db && game.currentSessionId && player.userId) {
+      db.saveProctoringEvent(game.currentSessionId, player.userId, 'fullscreen_exit', JSON.stringify({ count, timestamp }));
+    }
+    
+    logger.warn(`Player ${player.name} exited fullscreen (${player.fullscreenExits}/3)`);
+    
+    if (player.fullscreenExits >= 3) {
+      kickPlayer(token, 'Напуснахте fullscreen режим 3 пъти');
+    }
+  });
+
+  socket.on("player:disqualifyQuestion", ({ timestamp }) => {
+    const token = socket.data.playerToken;
+    if (!token) return;
+    
+    const player = playersByToken.get(token);
+    if (!player) return;
+    
+    const q = currentQuestion();
+    if (q) {
+      player.answers[q.id] = { choice: null, correct: false, points: 0, msLeft: 0, disqualified: true, reason: 'Напускане на fullscreen' };
+    }
+    
+    if (db && game.currentSessionId && player.userId) {
+      db.saveProctoringEvent(game.currentSessionId, player.userId, 'disqualified_question', JSON.stringify({ timestamp, questionId: q?.id }));
+    }
+    
+    emitAll();
+  });
+
+  socket.on("player:kick", ({ reason }) => {
+    const token = socket.data.playerToken;
+    if (!token) return;
+    kickPlayer(token, reason || 'Напускане на fullscreen');
+  });
+
+  socket.on("player:devTools", ({ count, timestamp }) => {
+    const token = socket.data.playerToken;
+    if (!token) return;
+    
+    const player = playersByToken.get(token);
+    if (!player) return;
+    
+    player.devToolsOpens = (player.devToolsOpens || 0) + 1;
+    
+    if (db && game.currentSessionId && player.userId) {
+      db.saveProctoringEvent(game.currentSessionId, player.userId, 'dev_tools', JSON.stringify({ count, timestamp }));
+    }
+    
+    logger.warn(`Player ${player.name} opened dev tools (${player.devToolsOpens}/2)`);
+    
+    if (player.devToolsOpens >= 2) {
+      disqualifyPlayer(token, 'Използване на инструменти за разработка');
+    }
+  });
+
+  socket.on("player:copyAttempt", ({ timestamp }) => {
+    const token = socket.data.playerToken;
+    if (!token) return;
+    
+    const player = playersByToken.get(token);
+    if (!player) return;
+    
+    player.copyAttempts = (player.copyAttempts || 0) + 1;
+    
+    if (db && game.currentSessionId && player.userId) {
+      db.saveProctoringEvent(game.currentSessionId, player.userId, 'copy_attempt', JSON.stringify({ timestamp }));
+    }
+  });
+
+  socket.on("player:fingerprint", ({ fingerprint, timestamp }) => {
+    const token = socket.data.playerToken;
+    if (!token) return;
+    
+    const player = playersByToken.get(token);
+    if (!player) return;
+    
+    player.deviceFingerprint = fingerprint;
+    
+    let sameFingerprintCount = 0;
+    for (const [otherToken, otherPlayer] of playersByToken) {
+      if (otherPlayer.deviceFingerprint === fingerprint && otherToken !== token) {
+        sameFingerprintCount++;
+      }
+    }
+    
+    if (sameFingerprintCount > 0) {
+      logger.warn(`Player ${player.name} has same fingerprint as another player`);
+      socket.emit('player:warning', 'Забелязано е използване на множество устройства');
+    }
+  });
+
+  socket.on("player:disqualify", ({ reason }) => {
+    const token = socket.data.playerToken;
+    if (!token) return;
+    disqualifyPlayer(token, reason);
+  });
+
+  function disqualifyPlayer(token, reason) {
+    const player = playersByToken.get(token);
+    if (!player) return;
+    
+    player.disqualified = true;
+    player.score = 0;
+    
+    const q = currentQuestion();
+    if (q && !player.answers[q.id]) {
+      player.answers[q.id] = { choice: null, correct: false, points: 0, msLeft: 0, disqualified: true };
+    }
+    
+    if (player.socketId) {
+      const disqualifiedSocket = io.sockets.sockets.get(player.socketId);
+      if (disqualifiedSocket) {
+        disqualifiedSocket.emit('player:disqualified', { reason });
+      }
+    }
+    
+    logAccess(player.ip || 'unknown', player.name, `Disqualified: ${reason}`);
+    emitAll();
+  }
 
   socket.on("disconnect", () => {
     metrics.recordSocketDisconnection();
@@ -1429,7 +2252,7 @@ if (require.main === module) {
   global.gameDb = db;
   global.io = io;
   initDefaultAdmins();
-  initDefaultQuestions();
+  // initDefaultQuestions(); // Disabled - teachers create their own questions
   
   setInterval(() => {
     db.cleanupExpiredBans();
@@ -1463,7 +2286,7 @@ if (require.main === module) {
     
     logger.info("");
     logger.info("=".repeat(50));
-    logger.info("AI или Човек? - Quiz Server Started");
+    logger.info("PGITECH - Quiz Server Started");
     logger.info("=".repeat(50));
     logger.info(`Environment: ${isProduction ? "PRODUCTION" : "DEVELOPMENT"}`);
     logger.info(`Protocol: ${protocol.toUpperCase()}`);

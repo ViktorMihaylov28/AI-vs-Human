@@ -1,8 +1,7 @@
 const SoundManager = (function() {
-  const STORAGE_KEY = 'ai_human_sound_muted';
+  const STORAGE_KEY = 'ai_human_sound';
   
   let audioContext = null;
-  let muted = localStorage.getItem(STORAGE_KEY) === 'true';
   let initialized = false;
 
   function init() {
@@ -11,10 +10,13 @@ const SoundManager = (function() {
     try {
       audioContext = new (window.AudioContext || window.webkitAudioContext)();
       initialized = true;
-      updateToggleUI();
     } catch (e) {
       console.warn('Web Audio API not supported:', e);
     }
+  }
+
+  function isMuted() {
+    return localStorage.getItem(STORAGE_KEY) === 'false';
   }
 
   function getAudioContext() {
@@ -28,7 +30,7 @@ const SoundManager = (function() {
   }
 
   function playTone(frequency, duration, type = 'sine', volume = 0.3) {
-    if (muted) return;
+    if (isMuted()) return;
     
     try {
       const ctx = getAudioContext();
@@ -54,7 +56,7 @@ const SoundManager = (function() {
   }
 
   function playSuccessSound() {
-    if (muted) return;
+    if (isMuted()) return;
     
     try {
       const ctx = getAudioContext();
@@ -74,7 +76,7 @@ const SoundManager = (function() {
   }
 
   function playErrorSound() {
-    if (muted) return;
+    if (isMuted()) return;
     
     try {
       playTone(200, 0.3, 'sawtooth', 0.15);
@@ -85,7 +87,7 @@ const SoundManager = (function() {
   }
 
   function playQuestionStartSound() {
-    if (muted) return;
+    if (isMuted()) return;
     
     try {
       const ctx = getAudioContext();
@@ -99,7 +101,7 @@ const SoundManager = (function() {
   }
 
   function playGameEndSound() {
-    if (muted) return;
+    if (isMuted()) return;
     
     try {
       const ctx = getAudioContext();
@@ -123,7 +125,7 @@ const SoundManager = (function() {
   }
 
   function playTickSound() {
-    if (muted) return;
+    if (isMuted()) return;
     
     try {
       playTone(800, 0.05, 'square', 0.1);
@@ -133,7 +135,7 @@ const SoundManager = (function() {
   }
 
   function playCountdownBeep() {
-    if (muted) return;
+    if (isMuted()) return;
     
     try {
       playTone(600, 0.1, 'sine', 0.15);
@@ -143,7 +145,7 @@ const SoundManager = (function() {
   }
 
   function playTimeUpSound() {
-    if (muted) return;
+    if (isMuted()) return;
     
     try {
       playTone(300, 0.4, 'sawtooth', 0.2);
@@ -154,7 +156,7 @@ const SoundManager = (function() {
   }
 
   function playButtonClickSound() {
-    if (muted) return;
+    if (isMuted()) return;
     
     try {
       playTone(500, 0.05, 'sine', 0.1);
@@ -163,51 +165,9 @@ const SoundManager = (function() {
     }
   }
 
-  function toggle() {
-    muted = !muted;
-    localStorage.setItem(STORAGE_KEY, muted);
-    updateToggleUI();
-    return muted;
-  }
-
-  function setMuted(value) {
-    muted = value;
-    localStorage.setItem(STORAGE_KEY, muted);
-    updateToggleUI();
-  }
-
-  function isMuted() {
-    return muted;
-  }
-
-  function updateToggleUI() {
-    const btn = document.getElementById('soundToggle');
-    if (btn) {
-      btn.classList.toggle('muted', muted);
-      btn.setAttribute('aria-label', muted ? 'Включи звука' : 'Изключи звука');
-      
-      const waves = btn.querySelectorAll('.sound-waves');
-      waves.forEach(wave => {
-        wave.style.display = muted ? 'none' : 'block';
-      });
-    }
-  }
-
   if (typeof document !== 'undefined') {
     document.addEventListener('DOMContentLoaded', () => {
       init();
-      
-      const soundBtn = document.getElementById('soundToggle');
-      if (soundBtn) {
-        soundBtn.addEventListener('click', () => {
-          init();
-          toggle();
-        });
-        
-        soundBtn.addEventListener('touchstart', () => {
-          init();
-        }, { passive: true });
-      }
     });
 
     document.addEventListener('click', () => {
@@ -217,8 +177,6 @@ const SoundManager = (function() {
 
   return {
     init,
-    toggle,
-    setMuted,
     isMuted,
     playSuccessSound,
     playErrorSound,

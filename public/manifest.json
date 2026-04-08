@@ -1,7 +1,7 @@
 {
-  "name": "AI или Човек?",
-  "short_name": "AI Човек",
-  "description": "Multiplayer quiz игра за разпознаване на AI и човешки код",
+  "name": "PGITECH",
+  "short_name": "PGITECH",
+  "description": "Multiplayer quiz игра",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#050c1a",
