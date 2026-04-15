@@ -20,7 +20,7 @@ const { SecurityManager, PerformanceMonitor } = require("./security");
 const isProduction = process.env.NODE_ENV === "production";
 const USE_HTTPS = process.env.USE_HTTPS === "true";
 
-const PORT = parseInt(process.env.PORT, 10) || 3000;
+const PORT = parseInt(process.env.PORT, 10) || 3001;
 const QUESTION_TIME_SECONDS = parseInt(process.env.QUESTION_TIME_SECONDS, 10) || 15;
 const QUESTIONS_PER_GAME = parseInt(process.env.QUESTIONS_PER_GAME, 10) || 20;
 

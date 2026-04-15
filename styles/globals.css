@@ -1,0 +1,58 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-background: oklch(30% 0.02 260);
+  --color-foreground: oklch(95% 0.02 260);
+  --color-card: oklch(22% 0.02 260);
+  --color-card-foreground: oklch(95% 0.02 260);
+  --color-popover: oklch(22% 0.02 260);
+  --color-popover-foreground: oklch(95% 0.02 260);
+  --color-primary: oklch(60% 0.15 160);
+  --color-primary-foreground: oklch(95% 0.02 260);
+  --color-secondary: oklch(28% 0.01 260);
+  --color-secondary-foreground: oklch(95% 0.02 260);
+  --color-muted: oklch(28% 0.01 260);
+  --color-muted-foreground: oklch(60% 0.02 260);
+  --color-accent: oklch(60% 0.15 160);
+  --color-accent-foreground: oklch(95% 0.02 260);
+  --color-destructive: oklch(60% 0.22 25);
+  --color-destructive-foreground: oklch(95% 0.02 260);
+  --color-border: oklch(28% 0.01 260);
+  --color-input: oklch(28% 0.01 260);
+  --color-ring: oklch(60% 0.15 160);
+  --radius: 0.5rem;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+  html {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+  }
+  body {
+    font-family: system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .animate-in {
+    animation: animate-in 0.2s ease-out;
+  }
+  .fade-in {
+    animation: fade-in 0.2s ease-out;
+  }
+  .slide-in-from-top-2 {
+    --tw-enter-translate-y: -0.5rem;
+  }
+}

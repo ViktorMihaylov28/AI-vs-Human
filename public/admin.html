@@ -7,24 +7,24 @@
   <title>Админ - PGITECH</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="stylesheet" href="/style.css" />
-  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <script src="/qrcode.min.js"></script>
   <style>
     :root {
-      --primary: #8b5cf6;
-      --primary-dark: #7c3aed;
+      --accent: #10b981;
+      --accent-dark: #059669;
       --success: #22c55e;
       --warning: #f59e0b;
       --danger: #ef4444;
-      --info: #3b82f6;
-      --dark: #0f172a;
-      --darker: #020617;
-      --panel: #1e293b;
-      --border: #334155;
+      --dark: #1a1a2e;
+      --panel: #16213e;
+      --border: #2d3a4f;
+      --text: #ffffff;
+      --muted: #8892a0;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
     
-    body { background: var(--darker); color: #fff; font-family: 'Segoe UI', system-ui, sans-serif; }
+    body { background: var(--dark); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; }
 
     .login-screen {
       min-height: 100vh;
@@ -37,362 +37,314 @@
       width: 100%;
       max-width: 400px;
       background: var(--panel);
-      border-radius: 24px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
       padding: 40px;
-      box-shadow: 0 25px 50px rgba(0,0,0,0.5);
       text-align: center;
     }
 
     .login-logo {
-      font-size: 48px;
-      font-weight: 900;
-      background: linear-gradient(135deg, var(--primary), var(--info), #22d3ee);
-      -webkit-background-clip: text;
-      color: transparent;
+      font-size: 42px;
+      font-weight: 800;
+      color: var(--accent);
       margin-bottom: 8px;
     }
 
-    .login-subtitle { color: #94a3b8; margin-bottom: 32px; }
+    .login-subtitle { color: var(--muted); margin-bottom: 32px; }
 
     .form-input {
       width: 100%;
       padding: 14px 16px;
-      border: 2px solid var(--border);
-      border-radius: 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
       background: var(--dark);
-      color: #fff;
+      color: var(--text);
       font-size: 16px;
       margin-bottom: 12px;
-      transition: border-color 0.2s;
     }
 
-    .form-input:focus { border-color: var(--primary); outline: none; }
+    .form-input:focus { border-color: var(--accent); outline: none; }
 
     .btn {
       padding: 14px 28px;
       border: none;
-      border-radius: 12px;
-      font-size: 16px;
-      font-weight: 700;
+      border-radius: 6px;
+      font-size: 15px;
+      font-weight: 600;
       cursor: pointer;
-      transition: all 0.2s;
     }
 
-    .btn-primary { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: #fff; }
-    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4); }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-dark); }
 
-    .btn-success { background: linear-gradient(135deg, var(--success), #16a34a); color: #fff; }
-    .btn-danger { background: linear-gradient(135deg, var(--danger), #dc2626); color: #fff; }
-    .btn-warning { background: linear-gradient(135deg, var(--warning), #d97706); color: #000; }
-    .btn-secondary { background: var(--border); color: #fff; }
-    .btn-small { padding: 8px 16px; font-size: 14px; }
+    .btn-success { background: var(--success); color: #fff; }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-warning { background: var(--warning); color: #000; }
+    .btn-secondary { background: var(--border); color: var(--text); }
+    .btn-small { padding: 8px 16px; font-size: 13px; }
 
-    .admin-container {
-      display: none;
-      min-height: 100vh;
-    }
+    .admin-container { display: none; min-height: 100vh; }
 
     .admin-header {
-      background: var(--dark);
+      background: var(--panel);
       border-bottom: 1px solid var(--border);
       padding: 16px 24px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      position: sticky;
-      top: 0;
-      z-index: 100;
     }
 
     .header-brand {
-      font-size: 24px;
-      font-weight: 900;
-      background: linear-gradient(135deg, var(--primary), var(--info));
-      -webkit-background-clip: text;
-      color: transparent;
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--accent);
     }
 
-    .header-info {
-      display: flex;
-      align-items: center;
-      gap: 20px;
-    }
+    .header-info { display: flex; align-items: center; gap: 16px; }
 
     .game-code-badge {
-      background: var(--panel);
-      border: 2px solid var(--primary);
-      border-radius: 12px;
-      padding: 8px 20px;
-      font-size: 20px;
-      font-weight: 800;
-      letter-spacing: 3px;
+      background: var(--dark);
+      border: 2px solid var(--accent);
+      border-radius: 6px;
+      padding: 6px 16px;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: var(--accent);
     }
 
     .player-count-badge {
       background: var(--success);
-      border-radius: 50px;
-      padding: 6px 16px;
-      font-weight: 700;
-      font-size: 14px;
+      border-radius: 4px;
+      padding: 6px 12px;
+      font-weight: 600;
+      font-size: 13px;
     }
 
     .admin-tabs {
       display: flex;
-      background: var(--dark);
+      background: var(--panel);
       border-bottom: 1px solid var(--border);
-      overflow-x: auto;
     }
 
     .tab-btn {
-      padding: 16px 24px;
+      padding: 14px 20px;
       background: none;
       border: none;
-      color: #94a3b8;
-      font-size: 15px;
+      color: var(--muted);
+      font-size: 14px;
       font-weight: 600;
       cursor: pointer;
-      border-bottom: 3px solid transparent;
-      white-space: nowrap;
-      transition: all 0.2s;
+      border-bottom: 2px solid transparent;
     }
 
-    .tab-btn:hover { color: #fff; background: rgba(255,255,255,0.05); }
-    .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
 
     .tab-content { display: none; padding: 24px; }
     .tab-content.active { display: block; }
 
     .card {
       background: var(--panel);
-      border-radius: 16px;
-      padding: 24px;
-      margin-bottom: 20px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 20px;
+      margin-bottom: 16px;
     }
 
     .card-title {
-      font-size: 18px;
-      font-weight: 700;
+      font-size: 16px;
+      font-weight: 600;
       margin-bottom: 16px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
+      color: var(--text);
     }
 
-    .card-title .icon { font-size: 24px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
 
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
-
-    @media (max-width: 1024px) {
-      .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+    @media (max-width: 768px) {
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
     }
 
     .stat-card {
       background: var(--dark);
-      border-radius: 12px;
-      padding: 20px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 16px;
       text-align: center;
     }
 
-    .stat-value { font-size: 36px; font-weight: 800; color: var(--primary); }
-    .stat-label { font-size: 13px; color: #94a3b8; margin-top: 4px; }
+    .stat-value { font-size: 32px; font-weight: 700; color: var(--accent); }
+    .stat-label { font-size: 12px; color: var(--muted); margin-top: 4px; }
 
-    .game-controls {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
+    .game-controls { display: flex; gap: 10px; flex-wrap: wrap; }
 
     .question-preview {
       background: var(--dark);
-      border-radius: 12px;
-      padding: 20px;
-      margin-top: 16px;
+      border-radius: 6px;
+      padding: 16px;
     }
 
     .code-preview {
       background: #000;
-      border-radius: 8px;
-      padding: 16px;
+      border-radius: 4px;
+      padding: 12px;
       font-family: 'Consolas', monospace;
-      font-size: 13px;
-      max-height: 200px;
+      font-size: 12px;
+      max-height: 160px;
       overflow-y: auto;
       white-space: pre-wrap;
       color: #8ec5ff;
     }
 
-    .players-table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-
+    .players-table { width: 100%; border-collapse: collapse; }
     .players-table th, .players-table td {
-      padding: 12px 16px;
+      padding: 10px 12px;
       text-align: left;
       border-bottom: 1px solid var(--border);
     }
-
-    .players-table th { color: #94a3b8; font-weight: 600; font-size: 13px; }
-    .players-table tr:hover { background: rgba(255,255,255,0.03); }
+    .players-table th { color: var(--muted); font-weight: 600; font-size: 12px; }
+    .players-table tr:hover { background: rgba(255,255,255,0.02); }
 
     .player-rank {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
+      width: 28px; height: 28px;
+      border-radius: 4px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       font-weight: 700;
-      font-size: 14px;
+      font-size: 12px;
     }
-
-    .rank-1 { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #000; }
-    .rank-2 { background: linear-gradient(135deg, #94a3b8, #64748b); color: #000; }
-    .rank-3 { background: linear-gradient(135deg, #d97706, #b45309); color: #fff; }
+    .rank-1 { background: #fbbf24; color: #000; }
+    .rank-2 { background: #94a3b8; color: #000; }
+    .rank-3 { background: #d97706; color: #fff; }
 
     .action-btn {
-      padding: 6px 12px;
+      padding: 4px 10px;
       border: none;
-      border-radius: 8px;
-      font-size: 13px;
+      border-radius: 4px;
+      font-size: 12px;
       font-weight: 600;
       cursor: pointer;
-      transition: all 0.15s;
     }
-
     .action-btn.kick { background: rgba(239, 68, 68, 0.2); color: var(--danger); }
     .action-btn.kick:hover { background: var(--danger); color: #fff; }
 
-    .answer-bars { margin-top: 16px; }
+    .answer-bars { margin-top: 12px; }
 
     .answer-bar-item {
       display: flex;
       align-items: center;
-      gap: 12px;
-      margin-bottom: 12px;
+      gap: 10px;
+      margin-bottom: 8px;
     }
 
-    .answer-bar-label { width: 120px; font-size: 13px; color: #94a3b8; }
-    .answer-bar-track { flex: 1; height: 24px; background: var(--dark); border-radius: 12px; overflow: hidden; }
-    .answer-bar-fill { height: 100%; border-radius: 12px; transition: width 0.5s ease; min-width: 2px; }
-    .answer-bar-fill.red { background: linear-gradient(90deg, #ef4444, #f87171); }
-    .answer-bar-fill.blue { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
-    .answer-bar-fill.yellow { background: linear-gradient(90deg, #eab308, #facc15); }
-    .answer-bar-fill.green { background: linear-gradient(90deg, #22c55e, #4ade80); }
-    .answer-bar-count { width: 40px; text-align: right; font-weight: 700; }
+    .answer-bar-label { width: 100px; font-size: 12px; color: var(--muted); }
+    .answer-bar-track { flex: 1; height: 20px; background: var(--dark); border-radius: 4px; overflow: hidden; }
+    .answer-bar-fill { height: 100%; border-radius: 4px; transition: width 0.3s; min-width: 2px; }
+    .answer-bar-fill.red { background: #ef4444; }
+    .answer-bar-fill.blue { background: #3b82f6; }
+    .answer-bar-fill.yellow { background: #eab308; }
+    .answer-bar-fill.green { background: #22c55e; }
+    .answer-bar-count { width: 30px; text-align: right; font-weight: 600; }
 
     .timer-big {
-      font-size: 72px;
-      font-weight: 900;
-      color: var(--info);
+      font-size: 64px;
+      font-weight: 700;
+      color: var(--accent);
       text-align: center;
     }
 
-    .timer-big.danger { color: var(--danger); animation: pulse 0.5s infinite; }
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    .timer-big.danger { color: var(--danger); }
 
     .qr-container {
       background: #fff;
-      border-radius: 16px;
-      padding: 16px;
+      border-radius: 6px;
+      padding: 12px;
       display: inline-block;
     }
 
     .proctoring-log {
-      padding: 12px 16px;
+      padding: 10px 12px;
       border-bottom: 1px solid var(--border);
-      font-size: 14px;
+      font-size: 13px;
     }
-
     .proctoring-log:last-child { border-bottom: none; }
-    .proctoring-log .time { color: #64748b; font-size: 12px; }
-    .proctoring-log .type { font-weight: 700; color: var(--warning); }
-    .proctoring-log .player { color: var(--info); }
+    .proctoring-log .time { color: var(--muted); font-size: 11px; }
+    .proctoring-log .type { font-weight: 600; color: var(--warning); }
+    .proctoring-log .player { color: var(--accent); }
 
     .hidden { display: none !important; }
 
-    .waiting-state {
-      text-align: center;
-      padding: 60px 20px;
-    }
+    .waiting-state { text-align: center; padding: 40px 20px; }
+    .waiting-state .icon { font-size: 60px; margin-bottom: 16px; }
+    .waiting-state h2 { font-size: 24px; margin-bottom: 8px; }
+    .waiting-state p { color: var(--muted); }
 
-    .waiting-state .icon { font-size: 80px; margin-bottom: 20px; }
-    .waiting-state h2 { font-size: 28px; margin-bottom: 12px; }
-    .waiting-state p { color: #94a3b8; }
-
-    .lobby-ready {
-      text-align: center;
-      padding: 40px;
-    }
-
-    .lobby-ready .qr-section {
-      margin: 30px 0;
-    }
+    .lobby-ready { text-align: center; padding: 32px; }
+    .lobby-ready .qr-section { margin: 24px 0; }
 
     .question-card {
       background: var(--dark);
-      border-radius: 12px;
-      padding: 16px;
-      margin-bottom: 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 8px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      cursor: pointer;
-      transition: all 0.15s;
     }
-
-    .question-card:hover { background: rgba(139, 92, 246, 0.1); border-color: var(--primary); }
-    .question-card.selected { border: 2px solid var(--primary); background: rgba(139, 92, 246, 0.15); }
 
     .question-num { 
-      width: 36px; height: 36px; border-radius: 50%; 
-      background: var(--border); display: flex; align-items: center; justify-content: center;
-      font-weight: 700; margin-right: 12px;
+      width: 28px; height: 28px;
+      border-radius: 4px;
+      background: var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 600; margin-right: 10px;
     }
 
-    .question-actions { display: flex; gap: 8px; }
+    .question-actions { display: flex; gap: 6px; }
 
     .settings-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 20px;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
     }
 
     .setting-item {
       background: var(--dark);
-      border-radius: 12px;
-      padding: 20px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 16px;
     }
 
     .setting-item label {
       display: block;
-      font-size: 14px;
+      font-size: 12px;
       font-weight: 600;
-      margin-bottom: 8px;
-      color: #94a3b8;
+      margin-bottom: 6px;
+      color: var(--muted);
     }
 
     .setting-item input, .setting-item select {
       width: 100%;
-      padding: 12px;
-      border: 2px solid var(--border);
-      border-radius: 8px;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
       background: var(--panel);
-      color: #fff;
-      font-size: 16px;
+      color: var(--text);
+      font-size: 14px;
     }
 
     .setting-item input:focus, .setting-item select:focus {
-      border-color: var(--primary);
+      border-color: var(--accent);
       outline: none;
     }
 
     .toggle-switch {
       position: relative;
-      width: 52px;
-      height: 28px;
+      width: 44px;
+      height: 24px;
     }
 
     .toggle-switch input { opacity: 0; width: 0; height: 0; }
@@ -402,28 +354,51 @@
       cursor: pointer;
       inset: 0;
       background: var(--border);
-      border-radius: 28px;
+      border-radius: 24px;
       transition: 0.3s;
     }
 
     .toggle-slider:before {
       content: "";
       position: absolute;
-      width: 20px;
-      height: 20px;
-      left: 4px;
-      bottom: 4px;
+      width: 18px;
+      height: 18px;
+      left: 3px;
+      bottom: 3px;
       background: #fff;
       border-radius: 50%;
       transition: 0.3s;
     }
 
-    .toggle-switch input:checked + .toggle-slider { background: var(--success); }
-    .toggle-switch input:checked + .toggle-slider:before { transform: translateX(24px); }
+    .toggle-switch input:checked + .toggle-slider { background: var(--accent); }
+    .toggle-switch input:checked + .toggle-slider:before { transform: translateX(20px); }
+
+    .form-group { margin-bottom: 12px; }
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: var(--muted);
+    }
+    .form-group textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--dark);
+      color: var(--text);
+      font-size: 14px;
+      font-family: inherit;
+      resize: vertical;
+      min-height: 100px;
+    }
+    .form-group textarea:focus { border-color: var(--accent); outline: none; }
+
+    .btn-row { display: flex; gap: 10px; margin-top: 16px; }
   </style>
 </head>
 <body>
-  <!-- LOGIN SCREEN -->
   <div class="login-screen" id="loginScreen">
     <div class="login-card">
       <div class="login-logo">PGITECH</div>
@@ -433,8 +408,8 @@
         <input type="password" id="loginPassword" class="form-input" placeholder="Парола" autocomplete="current-password" />
         <button type="submit" class="btn btn-primary" style="width: 100%;">Вход</button>
       </form>
-      <p style="margin-top: 20px; color: #64748b; font-size: 13px;">
-        Нямаш акаунт? <a href="#" id="showRegister" style="color: var(--primary);">Регистрирай се</a>
+      <p style="margin-top: 16px; color: var(--muted); font-size: 12px;">
+        Нямаш акаунт? <a href="#" id="showRegister" style="color: var(--accent);">Регистрирай се</a>
       </p>
     </div>
 
@@ -447,13 +422,12 @@
         <input type="password" id="regPasswordConfirm" class="form-input" placeholder="Потвърди парола" autocomplete="new-password" />
         <button type="submit" class="btn btn-primary" style="width: 100%;">Регистрация</button>
       </form>
-      <p style="margin-top: 20px; color: #64748b; font-size: 13px;">
-        Имаш акаунт? <a href="#" id="showLogin" style="color: var(--primary);">Влез</a>
+      <p style="margin-top: 16px; color: var(--muted); font-size: 12px;">
+        Имаш акаунт? <a href="#" id="showLogin" style="color: var(--accent);">Влез</a>
       </p>
     </div>
   </div>
 
-  <!-- ADMIN PANEL -->
   <div class="admin-container" id="adminContainer">
     <header class="admin-header">
       <div class="header-brand">PGITECH</div>
@@ -473,26 +447,25 @@
       <button class="tab-btn" data-tab="proctoring">Прокторинг</button>
     </nav>
 
-    <!-- LOBBY TAB -->
     <div class="tab-content active" id="tab-lobby">
       <div id="waitingState" class="waiting-state">
         <div class="icon">🎮</div>
         <h2>Готов ли си?</h2>
         <p>Създай игра и покани играчи!</p>
-        <button class="btn btn-primary" id="createGameBtn" style="margin-top: 24px;">Създай игра</button>
+        <button class="btn btn-primary" id="createGameBtn" style="margin-top: 20px;">Създай игра</button>
       </div>
 
       <div class="hidden" id="lobbyReady">
         <div class="lobby-ready">
           <h2>Играта е готова!</h2>
-          <p style="color: #94a3b8; margin: 16px 0;">Покажи този QR код на играчите</p>
+          <p style="color: var(--muted); margin: 12px 0;">Покажи този QR код на играчите</p>
           <div class="qr-section">
             <div class="qr-container">
               <div id="qrCodeContainer"></div>
             </div>
-            <p style="margin-top: 16px; font-size: 18px; font-weight: 700; letter-spacing: 4px;" id="lobbyGameCode">------</p>
+            <p style="margin-top: 12px; font-size: 16px; font-weight: 700; letter-spacing: 3px;" id="lobbyGameCode">------</p>
           </div>
-          <div class="grid-3" style="max-width: 400px; margin: 0 auto;">
+          <div class="grid-3" style="max-width: 360px; margin: 0 auto;">
             <div class="stat-card">
               <div class="stat-value" id="lobbyPlayers">0</div>
               <div class="stat-label">Играчи</div>
@@ -506,24 +479,23 @@
               <div class="stat-label">Време</div>
             </div>
           </div>
-          <button class="btn btn-success" id="startGameBtn" style="margin-top: 30px; padding: 16px 48px; font-size: 18px;">🚀 Старт на играта!</button>
+          <button class="btn btn-success" id="startGameBtn" style="margin-top: 24px; padding: 14px 40px;">🚀 Старт на играта!</button>
         </div>
       </div>
     </div>
 
-    <!-- GAME TAB -->
     <div class="tab-content" id="tab-game">
       <div class="grid-2">
         <div class="card">
-          <div class="card-title"><span class="icon">⏱️</span> Таймер</div>
+          <div class="card-title">⏱️ Таймер</div>
           <div class="timer-big" id="hostTimer">15</div>
-          <div id="timerDisplay" class="hidden" style="text-align: center; margin-top: 12px; color: #94a3b8;">
+          <div id="timerDisplay" class="hidden" style="text-align: center; margin-top: 10px; color: var(--muted);">
             Следващ въпрос след <span id="pauseCountdown">5</span>с
           </div>
         </div>
 
         <div class="card">
-          <div class="card-title"><span class="icon">📊</span> Прогрес</div>
+          <div class="card-title">📊 Прогрес</div>
           <div class="grid-3">
             <div class="stat-card">
               <div class="stat-value" id="questionNum">0/0</div>
@@ -542,7 +514,7 @@
       </div>
 
       <div class="card">
-        <div class="card-title"><span class="icon">📈</span> Разпределение на отговорите</div>
+        <div class="card-title">📈 Разпределение на отговорите</div>
         <div class="answer-bars">
           <div class="answer-bar-item">
             <span class="answer-bar-label">Лява е Човек</span>
@@ -568,25 +540,25 @@
       </div>
 
       <div class="card">
-        <div class="card-title"><span class="icon">👁️</span> Преглед на въпроса</div>
+        <div class="card-title">👁️ Преглед на въпроса</div>
         <div class="question-preview">
-          <div id="correctAnswerBox" class="hidden" style="background: rgba(34, 197, 94, 0.2); border: 1px solid var(--success); border-radius: 8px; padding: 12px; margin-bottom: 12px; color: var(--success); font-weight: 700;">
+          <div id="correctAnswerBox" class="hidden" style="background: rgba(34, 197, 94, 0.2); border: 1px solid var(--success); border-radius: 4px; padding: 10px; margin-bottom: 10px; color: var(--success); font-weight: 600;">
             ✅ Верен отговор: <span id="correctAnswerText">-</span>
           </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
             <div>
-              <div style="font-size: 12px; color: #64748b; margin-bottom: 4px;" id="leftCodeTitle">Ляв код</div>
+              <div style="font-size: 11px; color: var(--muted); margin-bottom: 4px;" id="leftCodeTitle">Ляв код</div>
               <div class="code-preview" id="hostLeftCode"></div>
             </div>
             <div>
-              <div style="font-size: 12px; color: #64748b; margin-bottom: 4px;" id="rightCodeTitle">Десен код</div>
+              <div style="font-size: 11px; color: var(--muted); margin-bottom: 4px;" id="rightCodeTitle">Десен код</div>
               <div class="code-preview" id="hostRightCode"></div>
             </div>
           </div>
         </div>
       </div>
 
-      <div class="game-controls" style="margin-top: 20px;">
+      <div class="game-controls" style="margin-top: 16px;">
         <button class="btn btn-primary" id="nextGameBtn">⏭️ Следващ въпрос</button>
         <button class="btn btn-warning" id="pauseGameBtn">⏸️ Пауза</button>
         <button class="btn btn-success hidden" id="resumeGameBtn">▶️ Продължи</button>
@@ -594,15 +566,14 @@
       </div>
     </div>
 
-    <!-- PLAYERS TAB -->
     <div class="tab-content" id="tab-players">
       <div class="card">
-        <div class="card-title"><span class="icon">👥</span> Играчи в класиране</div>
+        <div class="card-title">👥 Играчи в класиране</div>
         <div id="adminLeaderboard"></div>
       </div>
 
       <div class="card">
-        <div class="card-title"><span class="icon">📋</span> Всички играчи</div>
+        <div class="card-title">📋 Всички играчи</div>
         <div style="overflow-x: auto;">
           <table class="players-table">
             <thead>
@@ -620,14 +591,13 @@
       </div>
     </div>
 
-    <!-- QUESTIONS TAB -->
     <div class="tab-content" id="tab-questions">
       <div class="card">
-        <div class="card-title"><span class="icon">➕</span> Добави въпрос</div>
-        <div class="grid-2" style="margin-bottom: 20px;">
+        <div class="card-title">➕ Добави въпрос</div>
+        <div class="grid-2" style="margin-bottom: 16px;">
           <div class="form-group">
             <label>Тип въпрос</label>
-            <select id="newQuestionType" class="form-input">
+            <select id="newQuestionType" class="form-input" style="padding: 10px;">
               <option value="code">🖥️ Код (AI vs Човек)</option>
               <option value="multiple_choice">📝 Множествен избор</option>
               <option value="true_false">✓ Вярно/Невярно</option>
@@ -642,41 +612,38 @@
         <div id="questionTypeFields"></div>
         <div class="btn-row">
           <button class="btn btn-primary" id="saveQuestionBtn">💾 Запази въпроса</button>
-          <button class="btn btn-secondary" id="cancelQuestionBtn">Отказ</button>
         </div>
       </div>
 
       <div class="card">
-        <div class="card-title"><span class="icon">📚</span> Въпроси (<span id="questionsCount">0</span>)</div>
+        <div class="card-title">📚 Въпроси (<span id="questionsCount">0</span>)</div>
         <div id="questionsList"></div>
       </div>
 
       <div class="card">
-        <div class="card-title"><span class="icon">⚙️</span> Импорт/Експорт</div>
-        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-          <button class="btn btn-secondary" id="exportBtn">📤 Експорт JSON</button>
-          <label class="btn btn-secondary" style="cursor: pointer;">📥 Импорт JSON<input type="file" id="importFile" class="hidden" accept=".json" /></label>
+        <div class="card-title">⚙️ Импорт/Експорт</div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <button class="btn btn-secondary btn-small" id="exportBtn">📤 Експорт JSON</button>
+          <label class="btn btn-secondary btn-small" style="cursor: pointer;">📥 Импорт<input type="file" id="importFile" class="hidden" accept=".json" /></label>
         </div>
       </div>
     </div>
 
-    <!-- PROCTORING TAB -->
     <div class="tab-content" id="tab-proctoring">
       <div class="card">
-        <div class="card-title"><span class="icon">🔒</span> Прокторинг логове</div>
-        <div id="proctoringLogs" style="max-height: 400px; overflow-y: auto;">
-          <p style="color: #64748b; text-align: center; padding: 40px;">Няма логове за показване</p>
+        <div class="card-title">🔒 Прокторинг логове</div>
+        <div id="proctoringLogs" style="max-height: 320px; overflow-y: auto;">
+          <p style="color: var(--muted); text-align: center; padding: 32px;">Няма логове за показване</p>
         </div>
-        <button class="btn btn-secondary btn-small" id="refreshProctoringBtn" style="margin-top: 16px;">🔄 Обнови</button>
+        <button class="btn btn-secondary btn-small" id="refreshProctoringBtn" style="margin-top: 12px;">🔄 Обнови</button>
       </div>
     </div>
 
-    <!-- SETTINGS MODAL -->
     <div class="hidden" id="settingsModal" style="position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 1000;">
-      <div class="card" style="max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-          <h3 style="font-size: 20px;">⚙️ Настройки на играта</h3>
-          <button id="closeSettingsBtn" style="background: none; border: none; color: #fff; font-size: 24px; cursor: pointer;">×</button>
+      <div class="card" style="max-width: 480px; width: 90%; max-height: 90vh; overflow-y: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <h3 style="font-size: 18px;">⚙️ Настройки на играта</h3>
+          <button id="closeSettingsBtn" style="background: none; border: none; color: var(--text); font-size: 24px; cursor: pointer;">×</button>
         </div>
         <div class="settings-grid">
           <div class="setting-item">
@@ -702,16 +669,16 @@
               <option value="teams">👥 Отборен</option>
             </select>
           </div>
-          <div class="setting-item" style="display: flex; align-items: center; gap: 12px;">
+          <div class="setting-item" style="display: flex; align-items: center; gap: 10px;">
             <label class="toggle-switch"><input type="checkbox" id="settingTimeBonus" checked /><span class="toggle-slider"></span></label>
-            <span>Бонус за бързина</span>
+            <span style="font-size: 13px;">Бонус за бързина</span>
           </div>
-          <div class="setting-item" style="display: flex; align-items: center; gap: 12px;">
+          <div class="setting-item" style="display: flex; align-items: center; gap: 10px;">
             <label class="toggle-switch"><input type="checkbox" id="settingShuffleQuestions" checked /><span class="toggle-slider"></span></label>
-            <span>Разбъркване на въпроси</span>
+            <span style="font-size: 13px;">Разбъркване на въпроси</span>
           </div>
         </div>
-        <button class="btn btn-primary" id="saveSettingsBtn" style="margin-top: 20px; width: 100%;">💾 Запази настройките</button>
+        <button class="btn btn-primary" id="saveSettingsBtn" style="margin-top: 16px; width: 100%;">💾 Запази настройките</button>
       </div>
     </div>
   </div>
